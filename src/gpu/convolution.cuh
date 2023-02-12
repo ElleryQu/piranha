@@ -9,28 +9,38 @@
 
 namespace kernel {
 
+/// @brief 通用im2row算子。把图片扩展成矩阵。输入DinHW. 输出Conv_windowFFDin.
 template<typename T>
 __global__ void im2row(T *im, T *output,
         int imageWidth, int imageHeight,
         int filterSize, int Din, int stride, int padding) {
     
+    // 这里是对整个线程池的刻画。
+    // 线程所在地。y轴上表示第几个卷积窗口。
     int CONV_WINDOW_IDX = blockIdx.y*blockDim.y+threadIdx.y;
     int IM_INDEX = blockIdx.x*blockDim.x+threadIdx.x;
 
+    // 从宽度来看，给定卷积核尺寸和图片尺寸，卷积核在宽度上需要漫游多少次？
     int widthKernels = ((imageWidth - filterSize + (2*padding))/stride)+1;
     int heightKernels = ((imageHeight - filterSize + (2*padding))/stride)+1;
 
+    // 如果当前线程所在位置在x轴上大于等于输入的图片数量，或是在y轴上大于等于卷积采样下的总大小。
+    // 那就说明这个线程没活。歇着吧您。
     if (IM_INDEX >= Din ||
         CONV_WINDOW_IDX >= widthKernels * heightKernels) {
         return;
     }
 
+    // 输出索引：（卷积窗口位置*输入图象数+图像索引）*过滤器面积。
+    // 从排列上看，处于相同卷积窗口位置的不同图像被排列在一起、
     int outputIdx = (CONV_WINDOW_IDX * filterSize * filterSize * Din) + (IM_INDEX * filterSize * filterSize);
 
     // find top left corner of current convolution in image coordinates
+    // 查找当前卷积窗口左上角在图片上的位置。（被填充的部分被记为负数）
     int baseRow = ((CONV_WINDOW_IDX / widthKernels) * stride) - padding;
     int baseCol = ((CONV_WINDOW_IDX % widthKernels) * stride) - padding;
 
+    // 展开矩阵，将结果填充到output中。行优先。
     for(int r = 0; r < filterSize; r++) {
         for(int c = 0; c < filterSize; c++) {
 
@@ -53,6 +63,8 @@ __global__ void im2row(T *im, T *output,
     }
 }
 
+/// @brief maxpool专用的im2row。输入NHWC. 输出NWHC
+/// @param Din 通道数。
 template<typename T>
 __global__ void maxpool_im2row(T *im, T *output,
         int imageWidth, int imageHeight,
@@ -61,9 +73,11 @@ __global__ void maxpool_im2row(T *im, T *output,
     // each thread:
     //   IMG_CHANNEL_IDX - which image+channel are we looking at
     //   CONV_WINDOW_IDX - which location in the image are we looking at
-    
+    // 图片通道索引。线程池y轴。
     int IMG_CHANNEL_IDX = blockIdx.y*blockDim.y+threadIdx.y;
+    // 卷积窗口索引。线程池x轴。
     int CONV_WINDOW_IDX = blockIdx.x*blockDim.x+threadIdx.x;
+    // 这里可能是因为输入图像格式为NHWC，CUDA线程按列优先排布，因此在y轴上是图片数*通道。
 
     int widthKernels = ((imageWidth - filterSize + (2*padding))/stride)+1;
     int heightKernels = ((imageHeight - filterSize + (2*padding))/stride)+1;
@@ -75,16 +89,21 @@ __global__ void maxpool_im2row(T *im, T *output,
 
     int poolSize = filterSize * filterSize;
 
+    // 这里提示一点：线程池排布和图片排布不是一回事、这里要求线程池的纵轴包含NC。
     int batch = IMG_CHANNEL_IDX / Din;
     int channel = IMG_CHANNEL_IDX % Din;
 
     // find top left corner of current convolution in image coordinates
+    // 为什么这里选择除卷积窗口高度？这里规定卷积窗口索引是列优先排布的。卷积窗口索引在x轴。
+    // x轴列优先，y轴行优先。为什么？
     int baseCol = ((CONV_WINDOW_IDX / heightKernels) * stride) - padding;
     int baseRow = ((CONV_WINDOW_IDX % heightKernels) * stride) - padding;
 
     // find the right row in the output
+    // （图片标号*图片面积*通道数+池化窗口标号*通道数+通道标号）*池化核大小。
     int outputIdx = (batch * (widthKernels * heightKernels * Din * poolSize)) + (CONV_WINDOW_IDX * (Din * poolSize)) + (channel * poolSize);
 
+    // 展开矩阵。列优先。
     for(int c = 0; c < filterSize; c++) {
         for(int r = 0; r < filterSize; r++) {
 
@@ -95,6 +114,7 @@ __global__ void maxpool_im2row(T *im, T *output,
                 x < 0 || x >= imageWidth) { 
 
                 // output[outputIdx++] = 0;
+                // 在maxpool里，不保留pad空的区域。为什么？
 
             } else {
 
@@ -217,9 +237,11 @@ void im2row(const DeviceData<T> *im, DeviceData<T> *output,
         int filterSize, int Din, int stride, int padding) {
 
     // each row is a flattened window of a single conv window over each input im
+    // 行：对每一个输入图像的某个卷积窗口展开。
     int xThreads = Din; 
 
     // each column is all the conv vews for a single input im
+    // 列：单个图像的所有卷积窗口。
     int widthKernels = ((imageWidth - filterSize + (2*padding))/stride)+1;
     int heightKernels = ((imageHeight - filterSize + (2*padding))/stride)+1;
     int yThreads = widthKernels * heightKernels;
@@ -230,6 +252,7 @@ void im2row(const DeviceData<T> *im, DeviceData<T> *output,
     dim3 threadsPerBlock(xThreads, yThreads);
     dim3 blocksPerGrid(1, 1);
 
+    // 一个块放不下就都放几个块。
     if (xThreads > MAX_THREADS_PER_BLOCK) {
         threadsPerBlock.x = MAX_THREADS_PER_BLOCK;
         blocksPerGrid.x = ceil(double(xThreads)/double(threadsPerBlock.x));
@@ -255,14 +278,17 @@ void maxpool_im2row(const DeviceData<T> *im, DeviceData<T> *output,
         int filterSize, int Din, int batchSize, int stride, int padding, U pad_val) {
 
     // each thread row calculates all windows over a particular channel for a particular image
+    // 行：特定图像特定通道的所有窗口。
     int yThreads = batchSize * Din;
 
     // each thread column calculates a window in the same position for all images/channels
+    // 列：对于所有图片和通道，单个位置的窗口。
     int widthKernels = ((imageWidth - filterSize + (2*padding))/stride)+1;
     int heightKernels = ((imageHeight - filterSize + (2*padding))/stride)+1;
     int xThreads = widthKernels * heightKernels;
 
     // each individual thread flattens/pads one pool window
+    // 每个线程处理单个图片单个通道单个窗口的展开。
     DeviceData<T> unpaddedOutput(filterSize * filterSize * xThreads * yThreads);
     
     dim3 threadsPerBlock(xThreads, yThreads);
@@ -285,6 +311,7 @@ void maxpool_im2row(const DeviceData<T> *im, DeviceData<T> *output,
     );
 
     // pad output pools to next power of 2
+    // 填充到2次幂。
     int paddedSize = pow(ceil(log2(filterSize * filterSize)), 2);
     output->resize(paddedSize * xThreads * yThreads);
 
