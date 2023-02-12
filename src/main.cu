@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
 
     std::ifstream input_config(parsed_options["config"].as<std::string>());
     input_config >> piranha_config;
+    std::cout << "Parse input config to json." << std::endl;
 
     // Start memory profiler and initialize communication between parties
     memory_profiler.start();
@@ -88,8 +89,10 @@ int main(int argc, char** argv) {
     std::vector<std::string> party_ips;
     for (int i = 0; i < piranha_config["num_parties"]; i++) {
 	    party_ips.push_back(piranha_config["party_ips"][i]);
+        std::cout << piranha_config["party_ips"][i] << std::endl;
     }
     initializeCommunication(party_ips, partyNum, piranha_config["num_parties"]);
+    std::cout << "Communication established." << std::endl;
 
     synchronize(10000, piranha_config["num_parties"]); // wait for everyone to show up :)
     
@@ -105,10 +108,12 @@ int main(int argc, char** argv) {
 
     // Unit tests
     if (piranha_config["run_unit_tests"]) {
+        std::cout << "Unit tests begin...";
         int returnCode = runTests(argc, argv);
         if (returnCode != 0 || piranha_config["unit_test_only"]) {
             exit(returnCode);
         }
+        std::cout << "\tfinished." << std::endl;
     }
 
     std::cout << "run unit tests? " << piranha_config["run_unit_tests"] << std::endl;
