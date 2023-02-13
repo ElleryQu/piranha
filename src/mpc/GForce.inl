@@ -926,7 +926,7 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         int stride, int dilation) {
 
     GFO<T> x(A.size()), y(B.size()), z(C.size());
-    if (!b.offline_known)
+    if (!B.offline_known)
     {
         PrecomputeObject.getConvBeaverTriple_fprop<T, GFO<T> >(x, y, z, 
             batchSize, imageHeight, imageWidth, Din,
@@ -972,32 +972,32 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // GFO<uint32_t>::SERVER: r^S.     
         // GFO<uint32_t>::CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(c.size());
+        DeviceData<T> offline_output(C.size());
         offline_output.fill(0);
 
         // GFO<uint32_t>::SERVER: x-r^C.   
         // GFO<uint32_t>::CLIENT: r^C.
-        DeviceData<T> r(a.size());
+        DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
-            r -= *a.getShare(0);
+            r -= *A.getShare(0);
             r *= -1;
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
-            *c.getShare(0) += offline_output;
+            *C.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
-            r += *a.getShare(0);
-            DeviceData<T> b_copy(b.size());
-            b_copy += *b.getShare(0);
-            gpu::conv_fprop(&r, &b_copy, c.getShare(0), 
+            r += *A.getShare(0);
+            DeviceData<T> b_copy(B.size());
+            b_copy += *B.getShare(0);
+            gpu::conv_fprop(&r, &b_copy, C.getShare(0), 
                 batchSize, imageHeight, imageWidth, Din,
                 Dout, filterHeight, filterWidth,
                 paddingHeight, paddingWidth,
                 stride, dilation);
-            *c.getShare(0) += offline_output;
+            *C.getShare(0) += offline_output;
         }
         cudaThreadSynchronize();
     }
@@ -1011,7 +1011,7 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         int imageHeight, int imageWidth) {
 
     GFO<T> x(A.size()), y(B.size()), z(C.size());
-    if (!b.offline_known)
+    if (!B.offline_known)
     {
         PrecomputeObject.getConvBeaverTriple_dgrad<T, GFO<T> >(x, y, z, 
             batchSize, outputHeight, outputWidth, Dout,
@@ -1057,32 +1057,32 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // GFO<uint32_t>::SERVER: r^S.     
         // GFO<uint32_t>::CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(c.size());
+        DeviceData<T> offline_output(C.size());
         offline_output.fill(0);
 
         // GFO<uint32_t>::SERVER: x-r^C.   
         // GFO<uint32_t>::CLIENT: r^C.
-        DeviceData<T> r(a.size());
+        DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
-            r -= *a.getShare(0);
+            r -= *A.getShare(0);
             r *= -1;
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
-            *c.getShare(0) += offline_output;
+            *C.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
-            r += *a.getShare(0);
-            DeviceData<T> b_copy(b.size());
-            b_copy += *b.getShare(0);
-            gpu::conv_dgrad(&r, &b_copy, c.getShare(0), 
-                batchSize, imageHeight, imageWidth, Din,
-                Dout, filterHeight, filterWidth,
-                paddingHeight, paddingWidth,
-                stride, dilation);
-            *c.getShare(0) += offline_output;
+            r += *A.getShare(0);
+            DeviceData<T> b_copy(B.size());
+            b_copy += *B.getShare(0);
+            gpu::conv_dgrad(&r, &b_copy, C.getShare(0), 
+                batchSize, outputHeight, outputWidth, Dout,
+                filterHeight, filterWidth, Din,
+                paddingHeight, paddingWidth, stride, dilation,
+                imageHeight, imageWidth);
+            *C.getShare(0) += offline_output;
         }
         cudaThreadSynchronize();
     }
@@ -1096,13 +1096,13 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         int paddingHeight, int paddingWidth, int stride, int dilation) {
 
     GFO<T> x(A.size()), y(B.size()), z(C.size());
-    if (!b.offline_known)
+    if (!B.offline_known)
     {
         PrecomputeObject.getConvBeaverTriple_wgrad<T, GFO<T> >(x, y, z, 
             batchSize, outputHeight, outputWidth, Dout,
-            imageHeight, imageWidth, Din,
-            filterHeight, filterWidth,
-            paddingHeight, paddingWidth, stride, dilation);
+            filterHeight, filterWidth, Din,
+            paddingHeight, paddingWidth, stride, dilation,
+            imageHeight, imageWidth);
         DeviceData<T> e(x.size()), f(y.size()), temp(z.size());
 
         x += A; y += B;
@@ -1142,32 +1142,32 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // GFO<uint32_t>::SERVER: r^S.     
         // GFO<uint32_t>::CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(c.size());
+        DeviceData<T> offline_output(C.size());
         offline_output.fill(0);
 
         // GFO<uint32_t>::SERVER: x-r^C.   
         // GFO<uint32_t>::CLIENT: r^C.
-        DeviceData<T> r(a.size());
+        DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
-            r -= *a.getShare(0);
+            r -= *A.getShare(0);
             r *= -1;
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
-            *c.getShare(0) += offline_output;
+            *C.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
-            r += *a.getShare(0);
-            DeviceData<T> b_copy(b.size());
-            b_copy += *b.getShare(0);
-            gpu::conv_wgrad(&r, &b_copy, c.getShare(0), 
-                batchSize, imageHeight, imageWidth, Din,
-                Dout, filterHeight, filterWidth,
-                paddingHeight, paddingWidth,
-                stride, dilation);
-            *c.getShare(0) += offline_output;
+            r += *A.getShare(0);
+            DeviceData<T> b_copy(B.size());
+            b_copy += *B.getShare(0);
+            gpu::conv_wgrad(&r, &b_copy, C.getShare(0), 
+                batchSize, outputHeight, outputWidth, Dout,
+                imageHeight, imageWidth, Din,
+                filterHeight, filterWidth,
+                paddingHeight, paddingWidth, stride, dilation);
+            *C.getShare(0) += offline_output;
         }
         cudaThreadSynchronize();
     }
