@@ -7,6 +7,7 @@
 
 namespace kernel {
 
+// 小端模式。
 template<typename T, typename U> 
 __global__ void bitexpand(T *a, size_t nVals, U *b) {
 
@@ -38,6 +39,8 @@ __global__ void setMSBs(U *bits, U val, size_t num_msbs, size_t bitWidth) {
     }
 }
 
+/// @brief 求rbits的msb，要求rbits以小端形式存储。如果设置xor_msb，那么则求二者msb的异或值。
+/// 将abits的msb设置为1，rbits的msb设置为0。
 template<typename T>
 __global__ void setCarryOutMSB(T *rbits, T *abits, T *msb, size_t n, int bitWidth, bool xor_msb) {
 

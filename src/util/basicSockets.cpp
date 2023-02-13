@@ -21,7 +21,7 @@
 #include <array>
 using namespace std;
 
-#define bufferSize 256
+#define bufferSize 8192
 
 #ifdef __linux__
 	#include <unistd.h>

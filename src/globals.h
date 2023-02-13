@@ -17,7 +17,7 @@
 
 // MPC globals
 #ifndef FLOAT_PRECISION
-#define FLOAT_PRECISION 26
+#define FLOAT_PRECISION 10
 #endif
 
 #define PRELOAD_PATH "files/preload/"

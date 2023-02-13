@@ -149,6 +149,11 @@ class DeviceDataBase {
             return *this;
         }
 
+        // DeviceDataBase<T, Iterator> &operator%=(const T rhs) {
+        //     thrust::transform(begin(), end(), begin(), scalar_mod_functor<T>(rhs));
+        //     return *this;
+        // }
+
         DeviceDataBase<T, Iterator> &operator>>=(const T rhs) {
             thrust::transform(begin(), end(), begin(), scalar_arith_rshift_functor<T>(rhs));
             return *this;
@@ -181,6 +186,12 @@ class DeviceDataBase {
         template<typename I2>
         DeviceDataBase<T, Iterator> &operator/=(const DeviceDataBase<T, I2> &rhs) {
             thrust::transform(this->begin(), this->end(), rhs.begin(), this->begin(), signed_divide_functor<T>());
+            return *this;
+        }
+
+        template<typename I2>
+        DeviceDataBase<T, Iterator> &operator%=(const DeviceDataBase<T, I2> &rhs) {
+            thrust::transform(this->begin(), this->end(), rhs.begin(), this->begin(), thrust::modulus<T>());
             return *this;
         }
 

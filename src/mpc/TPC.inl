@@ -846,6 +846,7 @@ void dReLU(const TPC<T, I> &input, TPC<U, I2> &result) {
     TPC<U> msb(input.size());
 
     // setCarryOutMSB overwrites abits/rbits, so make sure if we're party C that we don't accidentally use the modified values (hacky)
+    // msb(r) xor msb(a).
     gpu::setCarryOutMSB(*(rbits.getShare(0)), abits, *(msb.getShare(0)), bitWidth, partyNum == TPC<U>::PARTY_A);
 
     TPC<U> g(rbits.size());
@@ -854,7 +855,7 @@ void dReLU(const TPC<T, I> &input, TPC<U, I2> &result) {
     g &= abits;
 
     TPC<U> p(rbits.size());
-    p.zero();
+    p.zero();       
     p += rbits;
     p ^= abits;
 

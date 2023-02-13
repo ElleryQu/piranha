@@ -16,6 +16,7 @@
 #include "mpc/TPC.h"
 #include "mpc/FPC.h"
 #include "mpc/OPC.h"
+#include "mpc/GForce.h"
 #include "util/util.cuh"
 #include "../ext/cxxopts.hpp"
 #include <json.hpp>
@@ -108,7 +109,7 @@ int main(int argc, char** argv) {
 
     // Unit tests
     if (piranha_config["run_unit_tests"]) {
-        std::cout << "Unit tests begin...";
+        std::cout << "Unit tests begin..." << std::endl;
         int returnCode = runTests(argc, argv);
         if (returnCode != 0 || piranha_config["unit_test_only"]) {
             exit(returnCode);

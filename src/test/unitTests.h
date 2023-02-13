@@ -27,6 +27,7 @@
 #include "../mpc/TPC.h"
 #include "../mpc/FPC.h"
 #include "../mpc/OPC.h"
+#include "../mpc/GForce.h"
 #include "../nn/LNConfig.h"
 #include "../nn/LNLayer.h"
 #include "../nn/CNNConfig.h"

@@ -45,6 +45,21 @@ struct scalar_divide_functor {
 };
 
 template<typename T>
+struct scalar_mod_functor {
+
+    typedef typename std::make_signed<T>::type S;
+    const T a;
+
+    scalar_mod_functor(T _a) : a(_a) {}
+    __host__ __device__ T operator()(const T &x) const {
+        // assert(a>=0)
+        return static_cast<T>(
+            static_cast<S>(x) % (a)
+        );
+    }
+};
+
+template<typename T>
 struct scalar_arith_rshift_functor {
 
     typedef typename std::make_signed<T>::type S;
@@ -115,3 +130,14 @@ struct tofixed_variable_precision_functor {
     }
 };
 
+/// @brief  equal to 0. return 1{x>=a}.
+template<typename T>
+struct is_not_a_functor {    
+
+    const T a;
+
+    is_not_a_functor(T _a) : a(_a) {}
+    __host__ __device__ T operator()(const T &x) const {
+        return (T) (x != a);
+    }
+};
