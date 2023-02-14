@@ -44,6 +44,8 @@ class FPCBase {
         typedef T share_type;
         //using share_type = T;
         typedef I iterator_type;
+        // TODO: silly.
+        bool offline_known;
     
         static bool areOpposites(int partyI, int partyJ);
         static int partyG(int partyI, int partyJ);

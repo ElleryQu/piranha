@@ -104,14 +104,14 @@ void dividePublic(GFO<T, I> &a, T denominator);
 template<typename T, typename I, typename I2>
 void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators);
 
-template<typename T, typename I>
-void dividePublic_no_off1(GFO<T, I> &a, T denominator);
+template<typename T, typename U, typename I, typename I2>
+void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<U, I2> &result);
 
-template<typename T, typename I, typename I2>
-void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators);
+template<typename T, typename U, typename I, typename I2, typename I3>
+void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, I3> &result);
 
-template<typename T, typename I>
-void privateCompare(GFO<T, I> &input) ;
+template<typename T, typename U, typename I, typename I2>
+void privateCompare(GFO<T, I> &input, GFO<U, I2> &result);
 
 template<typename T, typename I, typename I2>
 void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out);

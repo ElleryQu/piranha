@@ -518,3 +518,5 @@ template class NeuralNetwork<uint64_t, FPC>;
 template class NeuralNetwork<uint32_t, OPC>;
 template class NeuralNetwork<uint64_t, OPC>;
 
+template class NeuralNetwork<uint32_t, GFO>;
+template class NeuralNetwork<uint64_t, GFO>;

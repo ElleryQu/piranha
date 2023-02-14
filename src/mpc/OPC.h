@@ -36,6 +36,8 @@ class OPCBase {
         static int prevParty(int party);
         typedef T share_type;
         typedef I iterator_type;
+        // TODO: silly.
+        bool offline_known;
 
         OPCBase<T, I> &operator+=(const T rhs);
         OPCBase<T, I> &operator-=(const T rhs);

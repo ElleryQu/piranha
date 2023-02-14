@@ -143,3 +143,5 @@ template class AveragepoolLayer<uint64_t, FPC>;
 template class AveragepoolLayer<uint32_t, OPC>;
 template class AveragepoolLayer<uint64_t, OPC>;
 
+template class AveragepoolLayer<uint32_t, GFO>;
+template class AveragepoolLayer<uint64_t, GFO>;

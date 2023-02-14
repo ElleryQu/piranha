@@ -45,6 +45,11 @@ void FCLayer<T, Share>::initialize(int layerNum, int seed) {
 
     std::vector<double> bias_vals(biases.size(), 0.01);
     biases.setPublic(bias_vals);
+
+    // TODO: if Share in inference_only_protocol_list
+    if (typeid(Share<T>)==typeid(GFO<T>)) {
+        weights.offline_known = true;
+    }
 } 
 
 template<typename T, template<typename, typename...> typename Share>
@@ -235,3 +240,5 @@ template class FCLayer<uint64_t, FPC>;
 template class FCLayer<uint32_t, OPC>;
 template class FCLayer<uint64_t, OPC>;
 
+template class FCLayer<uint32_t, GFO>;
+template class FCLayer<uint64_t, GFO>;
