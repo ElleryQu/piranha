@@ -47,6 +47,11 @@ void CNNLayer<T, Share>::initialize(int layerNum, int seed) {
             weight_vals[i] = distribution(generator); 
     }   
     weights.setPublic(weight_vals);
+
+    // TODO: if Share in inference_only_protocol_list
+    if (typeid(Share<T>)==typeid(GFO<T>)) {
+        weights.offline_known = true;
+    }
 }
 
 template<typename T, template<typename, typename...> typename Share>

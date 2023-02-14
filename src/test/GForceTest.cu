@@ -7,7 +7,7 @@ struct GForceTest : public testing::Test {
 
 bool use_offline = true;
 
-TYPED_TEST_CASE(GForceTest, GFO<uint32_t>);
+TYPED_TEST_CASE(GForceTest, GFO<uint64_t>);
 
 TYPED_TEST(GForceTest, Mult) {
 
@@ -106,7 +106,7 @@ TYPED_TEST(GForceTest, DRELU) {
     };
 
     //Change to <uint8_t>
-    DeviceData<uint32_t> super_result(result.size());
+    DeviceData<T> super_result(result.size());
     reconstruct(result, super_result);
     assertDeviceData(super_result, expected, false);
 }
@@ -135,7 +135,7 @@ TYPED_TEST(GForceTest, DRELU2) {
     };
 
     //Change to <uint8_t>
-    DeviceData<uint32_t> super_result(result.size());
+    DeviceData<T> super_result(result.size());
     reconstruct(result, super_result);
 
     printDeviceData(super_result, "actual", false);

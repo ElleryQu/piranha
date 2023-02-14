@@ -37,6 +37,8 @@ class RSSBase {
         typedef T share_type;
         //using share_type = T;
         typedef I iterator_type;
+        // TODO: silly.
+        bool offline_known;
 
 
         RSSBase<T, I> &operator+=(const T rhs);

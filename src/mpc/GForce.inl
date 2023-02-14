@@ -355,7 +355,7 @@ int GFOBase<T, I>::otherParty(int party) {
 	switch(party) {
         case SERVER:
             return CLIENT;
-        default: // GFO<uint32_t>::CLIENT
+        default: // CLIENT
             return SERVER;
     }	
 }
@@ -459,7 +459,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     // TODO: int8 or int4 support.
     size_t size = a.size();
 
-    // step 1:  SERVER samples r and send xs + r to GFO<uint32_t>::CLIENT.
+    // step 1:  SERVER samples r and send xs + r to CLIENT.
     //          CLIENT computes z = x + r.
     DeviceData<T> r(size);
     if (partyNum == GFO<uint32_t>::SERVER) {
@@ -530,11 +530,11 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     func_profiler.add_comm_round();
 }
 
-/// @brief GFO<uint32_t>::SERVER and GFO<uint32_t>::CLIENT run a millionaire's protocool, output
-/// <1{x>y}>_2, where the input of GFO<uint32_t>::SERVER is x and GFO<uint32_t>::CLIENT y.
+/// @brief SERVER and CLIENT run a millionaire's protocool, output
+/// <1{x>y}>_2, where the input of SERVER is x and CLIENT y.
 /// @tparam T DeviceData datatype.
 /// @tparam I DeviceData iterator.
-/// @param a The input of GFO<uint32_t>::SERVER or GFO<uint32_t>::CLIENT.
+/// @param a The input of SERVER or CLIENT.
 template<typename T, typename U, typename I, typename I2>
 void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
     // TODO: int8 or int4 support.  uint8 √
@@ -614,7 +614,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         // TODO: randomn number.
         // PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASS.
 
-        // MILL step 3: GFO<uint32_t>::SERVER and GFO<uint32_t>::CLIENT evaluate bi together.
+        // MILL step 3: SERVER and CLIENT evaluate bi together.
         stride = T_bits_count;
         GFO<U> bi_xor(size*T_bits_count);
         bi_xor.fill(0);
@@ -659,7 +659,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         b += recvbi;
         bn1 += recvbn1;
 
-        // MILL step 6: GFO<uint32_t>::CLIENT check if there is any 0.
+        // MILL step 6: CLIENT check if there is any 0.
         // Lets work.        
         thrust::transform(b.begin(), b.end(), b.begin(), is_not_a_functor<T>(1));
         thrust::transform(bn1.begin(), bn1.end(), bn1.begin(), is_not_a_functor<T>(0));
@@ -972,13 +972,13 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
     else
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // GFO<uint32_t>::SERVER: r^S.     
-        // GFO<uint32_t>::CLIENT: w*r^C-r^S.
+        // SERVER: r^S.     
+        // CLIENT: w*r^C-r^S.
         DeviceData<T> offline_output(C.size());
         offline_output.fill(0);
 
-        // GFO<uint32_t>::SERVER: x-r^C.   
-        // GFO<uint32_t>::CLIENT: r^C.
+        // SERVER: x-r^C.   
+        // CLIENT: r^C.
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
@@ -1057,13 +1057,13 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
     else
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // GFO<uint32_t>::SERVER: r^S.     
-        // GFO<uint32_t>::CLIENT: w*r^C-r^S.
+        // SERVER: r^S.     
+        // CLIENT: w*r^C-r^S.
         DeviceData<T> offline_output(C.size());
         offline_output.fill(0);
 
-        // GFO<uint32_t>::SERVER: x-r^C.   
-        // GFO<uint32_t>::CLIENT: r^C.
+        // SERVER: x-r^C.   
+        // CLIENT: r^C.
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
@@ -1142,13 +1142,13 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
     else
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // GFO<uint32_t>::SERVER: r^S.     
-        // GFO<uint32_t>::CLIENT: w*r^C-r^S.
+        // SERVER: r^S.     
+        // CLIENT: w*r^C-r^S.
         DeviceData<T> offline_output(C.size());
         offline_output.fill(0);
 
-        // GFO<uint32_t>::SERVER: x-r^C.   
-        // GFO<uint32_t>::CLIENT: r^C.
+        // SERVER: x-r^C.   
+        // CLIENT: r^C.
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
@@ -1244,10 +1244,13 @@ void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
     dReLU(input, dresult);
     //func_profiler.accumulate("relu-drelu");
 
-    GFO<T> zeros(input.size());
+    // TODO: can we eliminate this copy op?
+    thrust::copy(dresult.getShare(0)->begin(), 
+        dresult.getShare(0)->end(),
+        result.getShare(0)->begin());
 
     //func_profiler.start();
-    selectShare(zeros, input, dresult, result);
+    result *= input;
     //func_profiler.accumulate("relu-selectshare");
 }
 
@@ -1461,13 +1464,13 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
     else 
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // GFO<uint32_t>::SERVER: r^S.     
-        // GFO<uint32_t>::CLIENT: w*r^C-r^S.
+        // SERVER: r^S.     
+        // CLIENT: w*r^C-r^S.
         DeviceData<T> offline_output(c.size());
         offline_output.fill(0);
 
-        // GFO<uint32_t>::SERVER: x-r^C.   
-        // GFO<uint32_t>::CLIENT: r^C.
+        // SERVER: x-r^C.   
+        // CLIENT: r^C.
         DeviceData<T> r(a.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
