@@ -177,9 +177,13 @@ TYPED_TEST(GForceTest, Truncate) {
     using T = typename Share::share_type;
 
     if (partyNum >= Share::numParties) return;
+    // true
+    printf("is GFO share?\t%d\n", typeid(Share)==typeid(GFO<T>));
+    // false
+    printf("is TPC share?\t%d\n", typeid(Share)==typeid(TPC<T>));
 
     Share a = {1 << 3, 2 << 3, 3 << 3, -3 << 3};
-    dividePublic_no_off1(a, (T)1 << 3);
+    dividePublic(a, (T)1 << 3);
 
     DeviceData<T> result(a.size());
     std::vector<double> expected = {1, 2, 3, -3};

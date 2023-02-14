@@ -298,3 +298,6 @@ template class LNLayer<uint64_t, FPC>;
 
 template class LNLayer<uint32_t, OPC>;
 template class LNLayer<uint64_t, OPC>;
+
+template class LNLayer<uint32_t, GFO>;
+template class LNLayer<uint64_t, GFO>;

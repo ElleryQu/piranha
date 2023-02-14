@@ -235,3 +235,5 @@ template class FCLayer<uint64_t, FPC>;
 template class FCLayer<uint32_t, OPC>;
 template class FCLayer<uint64_t, OPC>;
 
+template class FCLayer<uint32_t, GFO>;
+template class FCLayer<uint64_t, GFO>;
