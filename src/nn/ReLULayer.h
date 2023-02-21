@@ -15,7 +15,8 @@ class ReLULayer : public Layer<T, Share> {
     private:
         ReLUConfig conf;
 
-        Share<uint8_t> reluPrime;
+        // TODO: change back to uint8_t.
+        Share<uint32_t> reluPrime;
 
         Share<T> activations;
         Share<T> deltas;

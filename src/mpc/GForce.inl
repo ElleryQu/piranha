@@ -280,6 +280,7 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
     } 
     else 
     {
+        comm_profiler.start();
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // TODO: Precomputation.
         // SERVER: r^S.     
@@ -293,18 +294,24 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         r.fill(0);
         if (partyNum == CLIENT) {
             *this->getShare(0) -= r;
+            comm_profiler.start();
             this->getShare(0)->transmit(GFO<T>::otherParty(partyNum));
             this->getShare(0)->join();
+            comm_profiler.accumulate("comm-time");
             this->getShare(0)->zero();
             *this->getShare(0) += offline_output;
         }
         else if (partyNum == SERVER) {
+            comm_profiler.start();
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             *this->getShare(0) += r;
             *this->getShare(0) *= *rhs.getShare(0);
             *this->getShare(0) += offline_output;
         }
+
+        func_profiler.add_comm_round();
     }
  
     return *this;
@@ -458,6 +465,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
 
     // TODO: int8 or int4 support.
     size_t size = a.size();
+    result.zero();
 
     // step 1:  SERVER samples r and send xs + r to CLIENT.
     //          CLIENT computes z = x + r.
@@ -467,15 +475,19 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
         // TODO: randomness.
         r.fill(0);
         
-        *a.getShare(0) -= r;
+        *a.getShare(0) += r;
+        comm_profiler.start();
         a.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
         a.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
     }
     else if (partyNum == GFO<uint32_t>::CLIENT) {
         // TODO: randomness.
         r.fill(0);
+        comm_profiler.start();
         r.receive(GFO<T>::otherParty(partyNum));
         r.join();
+        comm_profiler.accumulate("comm-time");
         // compute z.
         r += *a.getShare(0);
     }
@@ -490,6 +502,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     // step 3: compute <1{rmodd <= zmodd}>_2
     GFO<T> rmodd_(&rmodd);
     GFO<U> compare_result(size);
+    compare_result.zero();
     privateCompare(rmodd_, compare_result);
 
     // Step 4: the final step.
@@ -500,7 +513,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     temp.fill(0);
     temp += *compare_result.getShare(0);
     if (partyNum == GFO<uint32_t>::SERVER) {
-        ur *= -1;
+        ur *= (T)-1;
 
         // bit2A.
         // placeholder for client's input.
@@ -508,7 +521,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
         another_input.fill(0);
         compare_result.offline_known = true;
         another_input *= compare_result;
-        another_input *= -2;
+        another_input *= (T)-2;
         another_input += temp;
         result += another_input;
     }
@@ -519,14 +532,12 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
         another_input.fill(0);
         another_input.offline_known = true;
         compare_result *= another_input;
-        compare_result *= -2;
+        compare_result *= (T)-2;
         compare_result += temp;
         result += compare_result;
     }
     *result.getShare(0) += ur;
 
-    comm_profiler.accumulate("comm-time");
-    func_profiler.add_comm_round();
     func_profiler.add_comm_round();
 }
 
@@ -559,7 +570,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         // test passed. run test passed.
         DeviceData<U> alpha(size * T_bits_count);
         gpu::vectorExpand(&delta, &alpha, T_bits_count);
-        alpha *= -2;
+        alpha *= (T)-2;
         alpha += 1;
 
         // MILL step 3: SERVER and CLIENT evaluate bi together.
@@ -571,7 +582,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         GFO<U> another_input(size*T_bits_count);
         another_input.fill(0);
         another_input *= bi_xor;
-        another_input *= -2;
+        another_input *= (T)-2;
         another_input += b;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
@@ -598,14 +609,16 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         bn1 += reduce_xor;
 
         // MILL step 5: transmission.
+        comm_profiler.start();
         bn1.transmit(GFO<T>::otherParty(partyNum));
         bn1.join();
         b.transmit(GFO<T>::otherParty(partyNum));
         b.join();
+        comm_profiler.accumulate("comm-time");
 
         // // MILL step 6: pass.
         // // PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASS.
-        input.zero();
+        result.zero();
         *result.getShare(0) += delta;
     }
     else if (partyNum == GFO<uint32_t>::CLIENT) {
@@ -623,7 +636,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         another_input.fill(0);
         another_input.offline_known = true;
         bi_xor *= another_input;
-        bi_xor *= -2;
+        bi_xor *= (T)-2;
         bi_xor += b;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
@@ -635,7 +648,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         DeviceData<U> key_expand(size * T_bits_count);
         gpu::vectorExpand(&key, &key_expand, T_bits_count);
         thrust::inclusive_scan_by_key(key_expand.begin(), key_expand.end(), reverse_prefix_xor_iter, reverse_prefix_xor_iter);
-        b *= -1;
+        b *= (T)-1;
         b += *prefix_xor.getShare(0);
 
         // MILL step 4: computes b_{-1}.
@@ -648,20 +661,21 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         bn1 += reduce_xor;
 
         // MILL step 5: transmission.
-        printf("Mill step 5: transmission.\n");
         DeviceData<U> recvbi(size * T_bits_count);
         DeviceData<U> recvbn1(size);
         recvbi.fill(0), recvbn1.fill(0);
+        comm_profiler.start();
         recvbn1.receive(GFO<T>::otherParty(partyNum));
         recvbn1.join();
         recvbi.receive(GFO<T>::otherParty(partyNum));
         recvbi.join();
+        comm_profiler.accumulate("comm-time");
         b += recvbi;
         bn1 += recvbn1;
 
         // MILL step 6: CLIENT check if there is any 0.
         // Lets work.        
-        thrust::transform(b.begin(), b.end(), b.begin(), is_not_a_functor<T>(1));
+        thrust::transform(b.begin(), b.end(), b.begin(), is_not_a_functor<T>(0));
         thrust::transform(bn1.begin(), bn1.end(), bn1.begin(), is_not_a_functor<T>(0));
 
         stride = 2;
@@ -677,8 +691,10 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         StridedRange<I2> b_range(b.begin(), b.end(), stride);
         DeviceData<U, SRIterator> b_(b_range.begin(), b_range.end());
         bn1 *= b_;
+        result.zero();
         *result.getShare(0) += bn1;
     }
+    func_profiler.add_comm_round();
 }
 
 /*
@@ -861,6 +877,60 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
     dividePublic(c, (T)1 << truncation);
 }
 
+/**
+ * return b*(y-x) + x. if b=0, return x; else return y. b is a boolean sharing.
+*/
+// template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
+// void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+
+//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
+
+//     //TO_BE_DONE
+//     GFO<T> c(x.size());
+//     GFO<U> cbits(b.size());
+
+//     // b XOR c, then open -> e
+//     cbits ^= b;
+
+//     DeviceData<U> e(cbits.size());
+//     reconstruct(cbits, e);
+
+//     // d = 1-c if e=1 else d = c       ->        d = (e)(1-c) + (1-e)(c)
+//     GFO<T> d(e.size());
+//     convex_comb(d, c, e);
+
+//     // z = ((y - x) * d) + x
+//     GFO<T> result(x.size());
+//     result += y;
+//     result -= x;
+//     result *= d;
+//     result += x;
+    
+//     z.zero();
+//     z += result;
+// }
+
+/**
+ * return b*(y-x) + x. if b=0, return x; else return y. b is a arithmatic sharing.
+*/
+// template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
+// void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+
+//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
+
+//     //TO_BE_DONE
+//     GFO<T> b_T(x.size());
+//     b_T.zero();
+//     z.zero();
+//     z += y;
+//     z -= x;
+//     thrust::copy(b.getShare(0)->begin(), 
+//         b.getShare(0)->end(),
+//         b_T.getShare(0)->begin());
+//     z *= b_T;
+//     z += x;
+// }
+
 template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
 void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
 
@@ -983,14 +1053,18 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
             r -= *A.getShare(0);
-            r *= -1;
+            r *= (T)-1;
+            comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
+            comm_profiler.start();
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             r += *A.getShare(0);
             DeviceData<T> b_copy(B.size());
             b_copy += *B.getShare(0);
@@ -1002,6 +1076,8 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
             *C.getShare(0) += offline_output;
         }
         cudaThreadSynchronize();
+
+        func_profiler.add_comm_round();
     }
 }
 
@@ -1067,15 +1143,19 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
+            comm_profiler.start();
             r -= *A.getShare(0);
-            r *= -1;
+            r *= (T)-1;
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
+            comm_profiler.start();
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             r += *A.getShare(0);
             DeviceData<T> b_copy(B.size());
             b_copy += *B.getShare(0);
@@ -1087,6 +1167,8 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
             *C.getShare(0) += offline_output;
         }
         cudaThreadSynchronize();
+
+        func_profiler.add_comm_round();
     }
 }
 
@@ -1152,15 +1234,19 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
+            comm_profiler.start();
             r -= *A.getShare(0);
-            r *= -1;
+            r *= (T)-1;
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
+            comm_profiler.start();
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             r += *A.getShare(0);
             DeviceData<T> b_copy(B.size());
             b_copy += *B.getShare(0);
@@ -1172,6 +1258,8 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
             *C.getShare(0) += offline_output;
         }
         cudaThreadSynchronize();
+
+        func_profiler.add_comm_round();
     }
 }
 
@@ -1228,8 +1316,9 @@ void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
     size_t size = input.size();
 
     // TODO: how to constrain in input x's range?
-    T bound = 1 << 30;
+    T bound = GFORCE_BOUND;
     GFO<T> input_(size);
+    input_.zero();
     input_ += input;
     input_ += bound;
     dividePublic_no_off1(input_, bound, result);
@@ -1240,19 +1329,78 @@ void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
 
     //TO_BE_DONE
 
-    //func_profiler.start();
+    func_profiler.start();
     dReLU(input, dresult);
-    //func_profiler.accumulate("relu-drelu");
+    func_profiler.accumulate("relu-drelu");
 
     // TODO: can we eliminate this copy op?
     thrust::copy(dresult.getShare(0)->begin(), 
         dresult.getShare(0)->end(),
         result.getShare(0)->begin());
 
-    //func_profiler.start();
+    func_profiler.start();
     result *= input;
-    //func_profiler.accumulate("relu-selectshare");
+    func_profiler.accumulate("relu-selectshare");
 }
+
+// template<typename T, typename U, typename I, typename I2>
+// void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
+
+//     //TO_BE_DONE
+//     int bitWidth = sizeof(T) * 8;
+
+//     GFO<T> r(input.size());
+//     GFO<U> rbits(input.size() * bitWidth);
+//     rbits.fill(1);
+
+//     DeviceData<T> a(input.size());
+//     r += input;
+//     reconstruct(r, a);
+//     a += 1;
+
+//     DeviceData<U> abits(rbits.size());
+//     gpu::bitexpand(&a, &abits);
+
+//     GFO<U> msb(input.size());
+
+//     // setCarryOutMSB overwrites abits/rbits, so make sure if we're party C that we don't accidentally use the modified values (hacky)
+//     // msb(r) xor msb(a).
+//     gpu::setCarryOutMSB(*(rbits.getShare(0)), abits, *(msb.getShare(0)), bitWidth, partyNum == GFO<U>::SERVER);
+
+//     GFO<U> g(rbits.size());
+//     g.zero();
+//     g += rbits;
+//     g &= abits;
+
+//     GFO<U> p(rbits.size());
+//     p.zero();       
+//     p += rbits;
+//     p ^= abits;
+
+//     GFO<U> preResult(result.size());
+//     carryOut(p, g, bitWidth, preResult);
+
+//     preResult ^= msb;
+
+//     result.fill(1);
+//     result -= preResult;
+// }
+
+// template<typename T, typename U, typename I, typename I2, typename I3>
+// void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
+
+//     //TO_BE_DONE
+
+//     //func_profiler.start();
+//     dReLU(input, dresult);
+//     //func_profiler.accumulate("relu-drelu");
+
+//     GFO<T> zeros(input.size());
+
+//     //func_profiler.start();
+//     selectShare(zeros, input, dresult, result);
+//     //func_profiler.accumulate("relu-selectshare");
+// }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
 void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
@@ -1305,7 +1453,16 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
         //printf("func-maxpool-post-drelu-k=%d\n", k);
         //printMemUsage();
      
-        selectShare(odd, even, b, even);
+        // TODO: remove copy.
+        GFO<T> b_T(b.size());
+        thrust::copy(b.getShare(0)->begin(), 
+            b.getShare(0)->end(),
+            b_T.getShare(0)->begin());
+            
+        // selectShare(odd, even, b, even);
+        even -= odd;
+        even *= b_T;
+        even += odd;
 
         // unzip even -> into even, odd
         stride *= 2;
@@ -1344,7 +1501,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
      
         // dresult &= expandedB
         func_profiler.start();
-        dresult &= expandedB;
+        dresult *= expandedB;
         func_profiler.accumulate("maxpool-dcalc");
 
         k /= 2;
@@ -1369,8 +1526,16 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
     dReLU(diff, b);
     func_profiler.accumulate("maxpool-z-drelu");
  
-    // b * even + 1-b * odd
-    selectShare(odd, even, b, even);
+    // TODO: remove copy.
+    GFO<T> b_T(b.size());
+    thrust::copy(b.getShare(0)->begin(), 
+        b.getShare(0)->end(),
+        b_T.getShare(0)->begin());
+        
+    // selectShare(odd, even, b, even);
+    even -= odd;
+    even *= b_T;
+    even += odd;
 
     func_profiler.start();
     //even *= b;
@@ -1394,7 +1559,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
  
     // dresult &= expandedB
     func_profiler.start();
-    dresult &= expandedB;
+    dresult *= expandedB;
     func_profiler.accumulate("maxpool-z-dcalc");
 }
 
@@ -1475,20 +1640,26 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
             r -= *a.getShare(0);
-            r *= -1;
+            r *= (T)-1;
+            comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             *c.getShare(0) += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
+            comm_profiler.start();
             r.receive(GFO<T>::otherParty(partyNum));
             r.join();
+            comm_profiler.accumulate("comm-time");
             r += *a.getShare(0);
             DeviceData<T> b_copy(b.size());
             b_copy += *b.getShare(0);
             gpu::gemm(M, N, K, &r, transpose_a, &b_copy, transpose_b, c.getShare(0), transpose_c);
             *c.getShare(0) += offline_output;
         }
+
+        func_profiler.add_comm_round();
     }
 }
 
@@ -1621,7 +1792,17 @@ void getPowers(GFO<T, I> &in, DeviceData<T, I2> &pow) {
         dReLU(diff, comparisons); // 0 -> current power is larger than input val, 1 -> input val is larger than current power
 
         // 0 -> keep val, 1 -> update to current known largest power less than input
-        selectShare(powers, currentPowerBit, comparisons, powers);
+        // TODO: remove copy.
+        GFO<T> b(comparisons.size());
+        thrust::copy(comparisons.getShare(0)->begin(), 
+            comparisons.getShare(0)->end(),
+            b.getShare(0)->begin());
+            
+        // selectShare(odd, even, b, even);
+        currentPowerBit -= powers;
+        currentPowerBit *= b;
+        powers += currentPowerBit;
+        // selectShare(powers, currentPowerBit, comparisons, powers);
     }
 
     reconstruct(powers, pow);

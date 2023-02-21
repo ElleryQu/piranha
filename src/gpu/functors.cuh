@@ -130,7 +130,7 @@ struct tofixed_variable_precision_functor {
     }
 };
 
-/// @brief  equal to 0. return 1{x>=a}.
+/// @brief  equal to 0. return 1{x!=a}.
 template<typename T>
 struct is_not_a_functor {    
 

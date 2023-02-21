@@ -9,31 +9,31 @@
     "party_users": ["alice", "bob"],
 
     "_desc_run_unit_tests": "Run unit tests",
-    "run_unit_tests": true,
+    "run_unit_tests": false,
 
     "_desc_unit_test_only": "Only run unit tests, do not try to run any full Piranha applications",
-    "unit_test_only": true,
+    "unit_test_only": false,
 
     "_desc_debug_print": "Show debug output",
     "debug_print": false,
 
     "_desc_debug_overflow": "Test for overflow and print related debug output. Breaks security by revealing intermediary values.",
-    "debug_overflow": false,
+    "debug_overflow": true,
 
     "_desc_debug_sqrt": "Test sqrt for invalid input and print related debug output. Breaks security by revealing intermediary values.",
     "debug_sqrt": false,
 
     "_desc_run_name": "Descriptive name for run, used to name log files with something useful",
-    "run_name": "hello_world_run",
+    "run_name": "gforce-inference",
 
     "_desc_network": "Path to NN architecture to use for the run",
     "network": "files/models/secureml-norelu.json",
 
     "_desc_custom_epochs": "Enable custom number of epochs. Otherwise set by size of learning rate schedule",
-    "custom_epochs": false,
+    "custom_epochs": true,
 
     "_desc_custom_epoch_count": "Number of epochs to train for, if custom_epochs is set",
-    "custom_epoch_count": 10,
+    "custom_epoch_count": 1,
 
     "_desc_custom_iterations": "Enable custom number of iterations. Otherwise set by training dataset size.",
     "custom_iterations": false,
@@ -51,10 +51,10 @@
     "nn_seed": 3407,
 
     "_desc_preload": "Preload weights from a snapshot directory instead of training from scratch",
-    "preload": false,
+    "preload": true,
 
     "_desc_preload_path": "Directory path from which to preload network weights",
-    "preload_path": "",
+    "preload_path": "output/gforce-inference-epoch-1",
 
     "_desc_lr_schedule": "Learning rate schedule, in negative powers of 2 (e.g. 3 -> learning rate of 2^-3). Assumes that the number of LR exponents matches the desired number of training epochs",
     "lr_schedule": [3, 3, 3, 4, 4, 5, 6, 7, 8, 9],
@@ -63,7 +63,7 @@
     "test_only": false,
 
     "_desc_inference_only": "Only run inference (forward pass), not backward pass training",
-    "inference_only": false,
+    "inference_only": true,
 
     "_desc_no_test": "Do not run testing after training epochs",
     "no_test": false,
@@ -78,7 +78,7 @@
     "test_iteration_snapshots": false,
 
     "_desc_epoch_snapshots": "Take snapshots after each training epoch",
-    "epoch_snapshots": false,
+    "epoch_snapshots": true,
 
     "_desc_eval_accuracy": "Evaluation: print training/test accuracy",
     "eval_accuracy": true,
