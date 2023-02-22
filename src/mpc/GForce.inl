@@ -280,7 +280,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
     } 
     else 
     {
-        comm_profiler.start();
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // TODO: Precomputation.
         // SERVER: r^S.     
@@ -416,17 +415,7 @@ void GFO<T, BufferIterator<T> >::resize(size_t n) {
 template<typename T, typename I>
 void dividePublic(GFO<T, I> &a, T denominator) {
 
-    GFO<T> r(a.size()), rPrime(a.size());
-    PrecomputeObject.getDividedShares<T, GFO<T> >(r, rPrime, denominator, a.size()); 
-    a -= rPrime;
-    
-    DeviceData<T> reconstructed(a.size());
-    reconstruct(a, reconstructed);
-    reconstructed /= denominator;
-
-    a.zero();
-    a += r;
-    a += reconstructed;
+    *a.getShare(0) /= denominator;
 }
 
 template<typename T, typename I, typename I2>
@@ -434,18 +423,7 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
 
     assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
 
-    GFO<T> r(a.size()), rPrime(a.size());
-    PrecomputeObject.getDividedShares<T, I2, GFO<T> >(r, rPrime, denominators, a.size()); 
-
-    a -= rPrime;
-
-    DeviceData<T> reconstructed(a.size());
-    reconstruct(a, reconstructed);
-    reconstructed /= denominators;
-
-    a.zero();
-    a += r;
-    a += reconstructed;
+    *a.getShare(0) /= denominators;
 }
 
 template<typename T, typename U, typename I, typename I2>
@@ -697,152 +675,6 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
     func_profiler.add_comm_round();
 }
 
-/*
-#define MAX_BITS 30
-
-template<typename T, typename I>
-void dividePublic(GFO<T, I> &a, size_t denominator) {
-
-    //printf("dividepublic denominator %d\n", denominator);
-    //fflush(stdout);
-    //assert((double)denominator > 1.0 && "dividePublic got denominator < 1.0");
-    
-    if (denominator == 1) return;
-
-    double divisor = 1.0 / denominator;
-    divisor *= 1 << MAX_BITS;
-
-    std::bitset<MAX_BITS> divisorBits = (T) divisor;
-
-    DeviceData<T> temp(a.size());
-    switch (partyNum) {
-        case GFO<T>::SERVER:
-
-            temp += *a.getShare(0);
-            a.zero();
-            
-            for (int i = MAX_BITS - 1; i >= 0; i--) {
-                temp >>= 1;
-
-                if (divisorBits[i]) {
-                    *a.getShare(0) += temp;
-                }
-            }
-
-            break;
-        case GFO<T>::CLIENT:
-
-            temp += *a.getShare(0);
-            a.zero();
-
-            temp *= (T)-1;
-
-            for (int i = MAX_BITS - 1; i >= 0; i--) {
-                temp >>= 1;
-
-                if (divisorBits[i]) {
-                    temp *= (T)-1;
-                    *a.getShare(0) += temp;
-                    temp *= (T)-1;
-                }
-            }
-
-            break;
-    }
-}
-
-template<typename T>
-struct divisor_bit_functor {
-
-    divisor_bit_functor() {}
-    __host__ __device__ T operator()(const T &x) const {
-        return (T)((1.0 / x) * (1 << MAX_BITS));
-    }
-};
-
-template<typename T>
-struct secureml_truncation_functor {
-
-    T scalar;
-    int bit;
-
-    secureml_truncation_functor(T _scalar, int _bit) : scalar(_scalar), bit(_bit) {}
-    __host__ __device__ T operator()(const T &divisorBits, const T &value) const {
-        return ((divisorBits >> bit) & 1) ? scalar * value : 0;
-    }
-};
-
-template<typename T>
-struct filter_by_val_functor {
-
-    T target_val;
-
-    filter_by_val_functor(T _target) : target_val(_target) {}
-
-    __host__ __device__ T operator()(const T &x, const T &val) const {
-        return (val == target_val) ? x : 0;
-    }
-};
-
-template<typename T, typename I, typename I2>
-void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
-
-//    for (int i = 0; i < denominators.size(); i++) {
-//        assert((double)denominators[i] > 1.0 && "dividePublic got denominator < 1.0");
-//    }
-
-    DeviceData<T> recon_a(a.size());
-    reconstruct(a, recon_a);
-
-    DeviceData<T> divisorBits(denominators.size());
-    thrust::transform(denominators.begin(), denominators.end(), divisorBits.begin(), divisor_bit_functor<T>());
-
-    DeviceData<T> temp(a.size());
-    DeviceData<T> intermediateTruncations(a.size());
-
-    switch (partyNum) {
-        case GFO<T>::SERVER:
-
-            temp += *a.getShare(0);
-            a.zero();
-
-            // Add temp unshifted back into share in cases where denominator is 1
-            thrust::transform(temp.begin(), temp.end(), denominators.begin(), a.getShare(0)->begin(), filter_by_val_functor<T>(1));
-
-            for (int i = MAX_BITS - 1; i >= 0; i--) {
-                temp >>= 1;
-
-                intermediateTruncations.zero();
-                thrust::transform(divisorBits.begin(), divisorBits.end(), temp.begin(), intermediateTruncations.begin(), secureml_truncation_functor<T>(1, i));
-
-                *a.getShare(0) += intermediateTruncations;
-            }
-
-            break;
-
-        case GFO<T>::CLIENT:
-
-            temp += *a.getShare(0);
-            a.zero();
-
-            thrust::transform(temp.begin(), temp.end(), denominators.begin(), a.getShare(0)->begin(), filter_by_val_functor<T>(1));
-
-            temp *= (T)-1;
-
-            for (int i = MAX_BITS - 1; i >= 0; i--) {
-                temp >>= 1;
-
-                intermediateTruncations.zero();
-                thrust::transform(divisorBits.begin(), divisorBits.end(), temp.begin(), intermediateTruncations.begin(), secureml_truncation_functor<T>((T)-1, i));
-
-                *a.getShare(0) += intermediateTruncations;
-            }
-
-            break;
-    }
-}
-*/
-
 template<typename T, typename I, typename I2>
 void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
 
@@ -874,7 +706,8 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
     localMatMul(a, b, c, M, N, K, transpose_a, transpose_b, transpose_c);
 
     // truncate
-    dividePublic(c, (T)1 << truncation);
+    // dividePublic(c, (T)1 << truncation);
+    c >>= truncation;
 }
 
 /**
@@ -913,53 +746,53 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
 /**
  * return b*(y-x) + x. if b=0, return x; else return y. b is a arithmatic sharing.
 */
-// template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-// void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
-
-//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
-
-//     //TO_BE_DONE
-//     GFO<T> b_T(x.size());
-//     b_T.zero();
-//     z.zero();
-//     z += y;
-//     z -= x;
-//     thrust::copy(b.getShare(0)->begin(), 
-//         b.getShare(0)->end(),
-//         b_T.getShare(0)->begin());
-//     z *= b_T;
-//     z += x;
-// }
-
 template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
 void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
 
     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
 
     //TO_BE_DONE
-    GFO<T> c(x.size());
-    GFO<U> cbits(b.size());
-
-    // b XOR c, then open -> e
-    cbits ^= b;
-
-    DeviceData<U> e(cbits.size());
-    reconstruct(cbits, e);
-
-    // d = 1-c if e=1 else d = c       ->        d = (e)(1-c) + (1-e)(c)
-    GFO<T> d(e.size());
-    convex_comb(d, c, e);
-
-    // z = ((y - x) * d) + x
-    GFO<T> result(x.size());
-    result += y;
-    result -= x;
-    result *= d;
-    result += x;
-    
+    GFO<T> b_T(x.size());
+    b_T.zero();
     z.zero();
-    z += result;
+    z += y;
+    z -= x;
+    thrust::copy(b.getShare(0)->begin(), 
+        b.getShare(0)->end(),
+        b_T.getShare(0)->begin());
+    z *= b_T;
+    z += x;
 }
+
+// template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
+// void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+
+//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
+
+//     //TO_BE_DONE
+//     GFO<T> c(x.size());
+//     GFO<U> cbits(b.size());
+
+//     // b XOR c, then open -> e
+//     cbits ^= b;
+
+//     DeviceData<U> e(cbits.size());
+//     reconstruct(cbits, e);
+
+//     // d = 1-c if e=1 else d = c       ->        d = (e)(1-c) + (1-e)(c)
+//     GFO<T> d(e.size());
+//     convex_comb(d, c, e);
+
+//     // z = ((y - x) * d) + x
+//     GFO<T> result(x.size());
+//     result += y;
+//     result -= x;
+//     result *= d;
+//     result += x;
+    
+//     z.zero();
+//     z += result;
+// }
 
 template<typename T, typename I, typename I2>
 void sqrt(GFO<T, I> &in, GFO<T, I2> &out) {
@@ -1143,9 +976,9 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
-            comm_profiler.start();
             r -= *A.getShare(0);
             r *= (T)-1;
+            comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
@@ -1299,7 +1132,8 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
     }
 
     // *C.getShare(0) += localResult;
-    dividePublic(C, (T)1 << truncation);
+    // dividePublic(C, (T)1 << truncation);
+    C >>= truncation;
 }
 
 // TODO change into 2 arguments with subtraction, pointer NULL indicates compare w/ 0
@@ -1333,74 +1167,14 @@ void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
     dReLU(input, dresult);
     func_profiler.accumulate("relu-drelu");
 
+    func_profiler.start();
     // TODO: can we eliminate this copy op?
     thrust::copy(dresult.getShare(0)->begin(), 
         dresult.getShare(0)->end(),
         result.getShare(0)->begin());
-
-    func_profiler.start();
     result *= input;
     func_profiler.accumulate("relu-selectshare");
 }
-
-// template<typename T, typename U, typename I, typename I2>
-// void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
-
-//     //TO_BE_DONE
-//     int bitWidth = sizeof(T) * 8;
-
-//     GFO<T> r(input.size());
-//     GFO<U> rbits(input.size() * bitWidth);
-//     rbits.fill(1);
-
-//     DeviceData<T> a(input.size());
-//     r += input;
-//     reconstruct(r, a);
-//     a += 1;
-
-//     DeviceData<U> abits(rbits.size());
-//     gpu::bitexpand(&a, &abits);
-
-//     GFO<U> msb(input.size());
-
-//     // setCarryOutMSB overwrites abits/rbits, so make sure if we're party C that we don't accidentally use the modified values (hacky)
-//     // msb(r) xor msb(a).
-//     gpu::setCarryOutMSB(*(rbits.getShare(0)), abits, *(msb.getShare(0)), bitWidth, partyNum == GFO<U>::SERVER);
-
-//     GFO<U> g(rbits.size());
-//     g.zero();
-//     g += rbits;
-//     g &= abits;
-
-//     GFO<U> p(rbits.size());
-//     p.zero();       
-//     p += rbits;
-//     p ^= abits;
-
-//     GFO<U> preResult(result.size());
-//     carryOut(p, g, bitWidth, preResult);
-
-//     preResult ^= msb;
-
-//     result.fill(1);
-//     result -= preResult;
-// }
-
-// template<typename T, typename U, typename I, typename I2, typename I3>
-// void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
-
-//     //TO_BE_DONE
-
-//     //func_profiler.start();
-//     dReLU(input, dresult);
-//     //func_profiler.accumulate("relu-drelu");
-
-//     GFO<T> zeros(input.size());
-
-//     //func_profiler.start();
-//     selectShare(zeros, input, dresult, result);
-//     //func_profiler.accumulate("relu-selectshare");
-// }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
 void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
@@ -1526,6 +1300,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
     dReLU(diff, b);
     func_profiler.accumulate("maxpool-z-drelu");
  
+    func_profiler.start();
     // TODO: remove copy.
     GFO<T> b_T(b.size());
     thrust::copy(b.getShare(0)->begin(), 
@@ -1536,6 +1311,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
     even -= odd;
     even *= b_T;
     even += odd;
+    func_profiler.accumulate("maxpool-selectShare");
 
     func_profiler.start();
     //even *= b;
@@ -1562,35 +1338,6 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
     dresult *= expandedB;
     func_profiler.accumulate("maxpool-z-dcalc");
 }
-
-/*
-template<typename T, typename I, typename I2, typename I3>
-void localConvolution(GFO<T, I> &im, GFO<T, I2> &filters, DeviceData<T, I3> &out,
-        size_t imageWidth, size_t imageHeight, size_t filterSize, size_t Din, size_t Dout,
-        size_t stride, size_t padding) {
-
-    size_t widthKernels = ((imageWidth - filterSize + (2*padding))/stride)+1;
-    size_t heightKernels = ((imageHeight - filterSize + (2*padding))/stride)+1;
-    int outSize = widthKernels * heightKernels * Dout;
-
-    GFO<T> imRows((size_t)0);
-    for(int share = 0; share < GFO<T>::numShares(); share++) {
-        gpu::im2row(
-            im.getShare(share),
-            imRows.getShare(share),
-            imageWidth, imageHeight, filterSize, Din, stride, padding
-        );
-    }
-
-    //DeviceData<T> result(outSize);
-    GFO<T> result(outSize);
-    localMatMul(imRows, filters, result,
-            widthKernels * heightKernels, Dout, Din * filterSize * filterSize,
-            false, true);
-
-    gpu::transpose(result.getShare(0), &out, widthKernels * heightKernels, Dout);
-}
-*/
 
 template<typename T>
 void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
@@ -1662,39 +1409,6 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
         func_profiler.add_comm_round();
     }
 }
-
-// template<typename T>
-// void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
-//         int M, int N, int K,
-//         bool transpose_a, bool transpose_b, bool transpose_c) {
-    
-//     GFO<T> x(a.size()), y(b.size()), z(c.size());
-
-//     int a_rows = transpose_a ? K : M; int a_cols = transpose_a ? M : K;
-//     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
-//     PrecomputeObject.getMatrixBeaverTriple<T, GFO<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b);
-
-//     DeviceData<T> e(x.size()), f(y.size()), temp(z.size());
-
-//     x += a; y += b;
-//     reconstruct(x, e);
-//     reconstruct(y, f);
-//     x -= a; y -= b;
-
-//     c.zero();
-//     c += z;
-
-//     gpu::gemm(M, N, K, &e, transpose_a, &f, transpose_b, &temp, transpose_c);
-//     c += temp;
-//     temp.zero();
-
-//     gpu::gemm(M, N, K, &e, transpose_a, y.getShare(0), transpose_b, &temp, transpose_c);
-//     c -= temp;
-//     temp.zero();
-
-//     gpu::gemm(M, N, K, x.getShare(0), transpose_a, &f, transpose_b, &temp, transpose_c);
-//     c -= temp;
-// }
 
 template<typename T, typename I, typename I2>
 void carryOut(GFO<T, I> &p, GFO<T, I> &g, int k, GFO<T, I2> &out) {

@@ -124,18 +124,18 @@ int main(int argc, char** argv) {
     loadModel(&nn_config, piranha_config["network"]);
 
 #ifdef ONEPC
-    NeuralNetwork<uint32_t, OPC> net(&nn_config, piranha_config["nn_seed"]);
+    NeuralNetwork<uint64_t, OPC> net(&nn_config, piranha_config["nn_seed"]);
 #else
 #ifdef TWOPC
-    NeuralNetwork<uint32_t, TPC> net(&nn_config, piranha_config["nn_seed"]);
+    NeuralNetwork<uint64_t, TPC> net(&nn_config, piranha_config["nn_seed"]);
 #else
 #ifdef FOURPC
-    NeuralNetwork<uint32_t, FPC> net(&nn_config, piranha_config["nn_seed"]);
+    NeuralNetwork<uint64_t, FPC> net(&nn_config, piranha_config["nn_seed"]);
 #else
 #ifdef GFORCE
-    NeuralNetwork<uint32_t, GFO> net(&nn_config, piranha_config["nn_seed"]);
+    NeuralNetwork<uint64_t, GFO> net(&nn_config, piranha_config["nn_seed"]);
 #else
-    NeuralNetwork<uint32_t, RSS> net(&nn_config, piranha_config["nn_seed"]);
+    NeuralNetwork<uint64_t, RSS> net(&nn_config, piranha_config["nn_seed"]);
 #endif
 #endif
 #endif
@@ -373,7 +373,7 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
                 net->saveSnapshot(snapshot_path);
 
                 if (piranha_config["test_iteration_snapshots"]) {
-                    NeuralNetwork<uint32_t, OPC> test_net(config, 0);
+                    NeuralNetwork<uint64_t, OPC> test_net(config, 0);
                     test_net.loadSnapshot(snapshot_path);
 
                     test(&test_net, test_data, test_labels);

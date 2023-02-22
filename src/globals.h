@@ -17,10 +17,10 @@
 
 // MPC globals
 #ifndef FLOAT_PRECISION
-#define FLOAT_PRECISION 10
+#define FLOAT_PRECISION 20
 #endif
 
-#define GFORCE_BOUND (uint64_t) 1 << 20
+#define GFORCE_BOUND (uint64_t) 1 << 40
 
 #define PRELOAD_PATH "files/preload/"
 #define TEST_PATH "files/test/"

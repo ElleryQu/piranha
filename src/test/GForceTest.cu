@@ -21,7 +21,7 @@ void random_vector(std::vector<double> &v, int size) {
     }
 }
 
-TYPED_TEST_CASE(GForceTest, GFO<uint32_t>);
+TYPED_TEST_CASE(GForceTest, GFO<uint64_t>);
 
 TYPED_TEST(GForceTest, SelectShare) {
 
