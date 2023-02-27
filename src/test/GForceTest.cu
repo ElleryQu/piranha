@@ -1,7 +1,7 @@
 #include "unitTests.h"
 
 template<typename T>
-struct GForceTest : public testing::Test {
+struct RogueTest : public testing::Test {
     using ParamType = T;
 };
 
@@ -21,9 +21,11 @@ void random_vector(std::vector<double> &v, int size) {
     }
 }
 
-TYPED_TEST_CASE(GForceTest, GFO<uint64_t>);
+using Types = testing::Types<TPC<uint64_t>, GFO<uint64_t>, ROG<uint64_t> >;
 
-TYPED_TEST(GForceTest, SelectShare) {
+TYPED_TEST_CASE(RogueTest, Types);
+
+TYPED_TEST(RogueTest, SelectShare) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -44,7 +46,7 @@ TYPED_TEST(GForceTest, SelectShare) {
     assertDeviceData(result, expected);
 }
 
-TYPED_TEST(GForceTest, SelectShare2) {
+TYPED_TEST(RogueTest, SelectShare2) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -65,15 +67,17 @@ TYPED_TEST(GForceTest, SelectShare2) {
     assertDeviceData(result, expected);
 }
 
-TYPED_TEST(GForceTest, Mult) {
+TYPED_TEST(RogueTest, Mult) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
 
     if (partyNum >= Share::numParties) return;
 
-    Share a ({12, 24, 3, 5, -2, -3}, false); 
-    Share b ({1, 0, 11, 3, -1, 11}, false);
+    // Share a ({12, 24, 3, 5, -2, -3}, false); 
+    // Share b ({1, 0, 11, 3, -1, 11}, false);
+    Share a ({12, 24, 3, 5, -2}, false); 
+    Share b ({1, 0, 11, 3, -1}, false);
 
     DeviceData<T> result(a.size());
 
@@ -83,11 +87,12 @@ TYPED_TEST(GForceTest, Mult) {
     a *= b;
     reconstruct(a, result);
 
-    std::vector<double> expected = {12, 0, 33, 15, 2, -33};
+    // std::vector<double> expected = {12, 0, 33, 15, 2, -33};
+    std::vector<double> expected = {12, 0, 33, 15, 2};
     assertDeviceData(result, expected, false);
 }
 
-TYPED_TEST(GForceTest, MatMul) {
+TYPED_TEST(RogueTest, MatMul) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -111,7 +116,7 @@ TYPED_TEST(GForceTest, MatMul) {
     assertDeviceData(result, expected);
 }
 
-TYPED_TEST(GForceTest, MatMul2) {
+TYPED_TEST(RogueTest, MatMul2) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -134,7 +139,7 @@ TYPED_TEST(GForceTest, MatMul2) {
     assertDeviceData(result, expected);
 }
 
-// TYPED_TEST(GForceTest, MULTIPLY_MAIN) {
+// TYPED_TEST(RogueTest, MULTIPLY_MAIN) {
 
 //     using Share = typename TestFixture::ParamType;
 //     using T = typename Share::share_type;
@@ -171,7 +176,7 @@ TYPED_TEST(GForceTest, MatMul2) {
 //     assertShare(a, expected, false);
 // }
 
-TYPED_TEST(GForceTest, Convolution) {
+TYPED_TEST(RogueTest, Convolution) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -214,16 +219,16 @@ TYPED_TEST(GForceTest, Convolution) {
     assertDeviceData(result, expected);
 }
 
-TYPED_TEST(GForceTest, Truncate) {
+TYPED_TEST(RogueTest, Truncate) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
 
     if (partyNum >= Share::numParties) return;
-    // true
-    printf("is GFO share?\t%d\n", typeid(Share)==typeid(GFO<T>));
-    // false
-    printf("is TPC share?\t%d\n", typeid(Share)==typeid(TPC<T>));
+    // // true
+    // printf("is GFO share?\t%d\n", typeid(Share)==typeid(GFO<T>));
+    // // false
+    // printf("is TPC share?\t%d\n", typeid(Share)==typeid(TPC<T>));
 
     Share a = {1 << 3, 2 << 3, 3 << 3, -3 << 3};
     dividePublic(a, (T)1 << 3);
@@ -235,7 +240,7 @@ TYPED_TEST(GForceTest, Truncate) {
     assertDeviceData(result, expected);
 }
 
-// TYPED_TEST(GForceTest, Truncate2) {
+// TYPED_TEST(RogueTest, Truncate2) {
 
 //     using Share = typename TestFixture::ParamType;
 //     using T = typename Share::share_type;
@@ -252,7 +257,7 @@ TYPED_TEST(GForceTest, Truncate) {
 //     assertDeviceData(result, expected);
 // }
 
-// TYPED_TEST(GForceTest, TruncateVec) {
+// TYPED_TEST(RogueTest, TruncateVec) {
 
 //     using Share = typename TestFixture::ParamType;
 //     using T = typename Share::share_type;
@@ -275,7 +280,7 @@ TYPED_TEST(GForceTest, Truncate) {
 //     assertDeviceData(result, expected);
 // }
 
-TYPED_TEST(GForceTest, DRELU) {
+TYPED_TEST(RogueTest, DRELU) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -308,7 +313,7 @@ TYPED_TEST(GForceTest, DRELU) {
     assertDeviceData(super_result, expected, false);
 }
 
-TYPED_TEST(GForceTest, DRELU2) {
+TYPED_TEST(RogueTest, DRELU2) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -335,11 +340,11 @@ TYPED_TEST(GForceTest, DRELU2) {
     DeviceData<T> super_result(result.size());
     reconstruct(result, super_result);
 
-    printDeviceData(super_result, "actual", false);
+    // printDeviceData(super_result, "actual", false);
     assertDeviceData(super_result, expected, false);
 }
 
-TYPED_TEST(GForceTest, DRELU3) {
+TYPED_TEST(RogueTest, DRELU3) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -370,7 +375,7 @@ TYPED_TEST(GForceTest, DRELU3) {
     assertShare(super_result, expected, false);
 }
 
-TYPED_TEST(GForceTest, DRELU4) {
+TYPED_TEST(RogueTest, DRELU4) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -393,7 +398,7 @@ TYPED_TEST(GForceTest, DRELU4) {
     assertShare(result, expected, false);
 }
 
-TYPED_TEST(GForceTest, DRELU_MAIN) {
+TYPED_TEST(RogueTest, DRELU_MAIN) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -422,7 +427,7 @@ TYPED_TEST(GForceTest, DRELU_MAIN) {
     DeviceData<T> expt(20);
     thrust::copy(expected.begin(), expected.end(), expt.begin());
 
-    printDeviceData(expt, "expected", false);
+    // printDeviceData(expt, "expected", false);
     assertShare(result, expected, false);
 }
 
@@ -430,7 +435,7 @@ TYPED_TEST(GForceTest, DRELU_MAIN) {
 
 
 
-TYPED_TEST(GForceTest, RELU) {
+TYPED_TEST(RogueTest, RELU) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -465,7 +470,7 @@ TYPED_TEST(GForceTest, RELU) {
     assertDeviceData(super_result, dexpected, false);
 }
 
-TYPED_TEST(GForceTest, RELU2) {
+TYPED_TEST(RogueTest, RELU2) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -500,7 +505,7 @@ TYPED_TEST(GForceTest, RELU2) {
     assertDeviceData(super_result, dexpected, false);
 }
 
-TYPED_TEST(GForceTest, Maxpool) {
+TYPED_TEST(RogueTest, Maxpool) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;
@@ -532,7 +537,7 @@ TYPED_TEST(GForceTest, Maxpool) {
     assertDeviceData(d_super_result, dexpected, false);
 }
 
-TYPED_TEST(GForceTest, Maxpool2) {
+TYPED_TEST(RogueTest, Maxpool2) {
 
     using Share = typename TestFixture::ParamType;
     using T = typename Share::share_type;

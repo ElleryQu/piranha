@@ -340,3 +340,6 @@ template class ResLayer<uint64_t, OPC>;
 
 template class ResLayer<uint32_t, GFO>;
 template class ResLayer<uint64_t, GFO>;
+
+template class ResLayer<uint32_t, ROG>;
+template class ResLayer<uint64_t, ROG>;

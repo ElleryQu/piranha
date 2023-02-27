@@ -1,10 +1,10 @@
 /*
- * GFO.inl
+ * ROG.inl
  */
 
 #pragma once
 
-#include "GForce.h"
+#include "Rogue.h"
 
 #include <bitset>
 #include <thrust/for_each.h>
@@ -31,9 +31,9 @@ extern Profiler func_profiler;
 
 // Functors
 
-struct GFO_convex_comb_functor {
+struct ROG_convex_comb_functor {
     const int party;
-    GFO_convex_comb_functor(int _party) : party(_party) {}
+    ROG_convex_comb_functor(int _party) : party(_party) {}
     
     template<typename Tuple>
     __host__ __device__
@@ -41,10 +41,10 @@ struct GFO_convex_comb_functor {
         // b, c share, d share
         if (thrust::get<0>(t) == 1) {
             switch(party) {
-                case GFO<uint64_t>::SERVER: // doesn't really matter what type GFO is templated at here
+                case ROG<uint64_t>::SERVER: // doesn't really matter what type ROG is templated at here
                     thrust::get<2>(t) = 1 - thrust::get<1>(t);
                     break;
-                case GFO<uint64_t>::CLIENT:
+                case ROG<uint64_t>::CLIENT:
                     thrust::get<2>(t) = -thrust::get<1>(t);
                     break;
             }
@@ -57,53 +57,53 @@ struct GFO_convex_comb_functor {
 // Prototypes
 
 template<typename T>
-void localMatMul(const GFO<T> &a, const GFO<T> &b, const GFO<T> &c,
+void localMatMul(const ROG<T> &a, const ROG<T> &b, const ROG<T> &c,
         int M, int N, int K,
         bool transpose_a, bool transpose_b);
 
 template<typename T, typename I, typename I2, typename I3>
-void localConvolution(GFO<T, I> &im, GFO<T, I2> &filters, DeviceData<T, I3> &out,
+void localConvolution(ROG<T, I> &im, ROG<T, I2> &filters, DeviceData<T, I3> &out,
         size_t imageWidth, size_t imageHeight, size_t filterSize, size_t Din, size_t Dout,
         size_t stride, size_t padding);
 
 template<typename T, typename I, typename I2>
-void carryOut(GFO<T, I> &p, GFO<T, I> &g, int k, GFO<T, I2> &out);
+void carryOut(ROG<T, I> &p, ROG<T, I> &g, int k, ROG<T, I2> &out);
 
 template<typename T, typename I, typename I2>
-void getPowers(GFO<T, I> &in, DeviceData<T, I2> &pow);
+void getPowers(ROG<T, I> &in, DeviceData<T, I2> &pow);
 
 template<typename T, typename I, typename I2, typename Functor>
-void taylorSeries(GFO<T, I> &in, GFO<T, I2> &out,
+void taylorSeries(ROG<T, I> &in, ROG<T, I2> &out,
         double a0, double a1, double a2,
         Functor fn);
 
 
 template<typename T, typename U, typename I, typename I2>
-void convex_comb(GFO<T, I> &a, GFO<T, I> &c, DeviceData<U, I2> &b);
+void convex_comb(ROG<T, I> &a, ROG<T, I> &c, DeviceData<U, I2> &b);
 
-// GFO class implementation 
+// ROG class implementation 
 
 template<typename T, typename I>
-GFOBase<T, I>::GFOBase(DeviceData<T, I> *a, bool offline_known) : 
+ROGBase<T, I>::ROGBase(DeviceData<T, I> *a, bool offline_known) : 
                 shareA(a), offline_known(offline_known) {}
 
 template<typename T, typename I>
-void GFOBase<T, I>::set(DeviceData<T, I> *a) {
+void ROGBase<T, I>::set(DeviceData<T, I> *a) {
     shareA = a;
 }
 
 template<typename T, typename I>
-size_t GFOBase<T, I>::size() const {
+size_t ROGBase<T, I>::size() const {
     return shareA->size();
 }
 
 template<typename T, typename I>
-void GFOBase<T, I>::zero() {
+void ROGBase<T, I>::zero() {
     shareA->zero();
 };
 
 template<typename T, typename I>
-void GFOBase<T, I>::fill(T val) {
+void ROGBase<T, I>::fill(T val) {
     shareA->fill(partyNum == SERVER ? val : 0);
 }
 
@@ -112,7 +112,7 @@ void GFOBase<T, I>::fill(T val) {
 /// @tparam I 
 /// @param v 
 template<typename T, typename I>
-void GFOBase<T, I>::setPublic(std::vector<double> &v) {
+void ROGBase<T, I>::setPublic(std::vector<double> &v) {
     std::vector<T> shifted_vals;
     for (double f : v) {
         shifted_vals.push_back((T) (f * (1 << FLOAT_PRECISION)));
@@ -129,7 +129,7 @@ void GFOBase<T, I>::setPublic(std::vector<double> &v) {
 };
 
 template<typename T, typename I>
-DeviceData<T, I> *GFOBase<T, I>::getShare(int i) {
+DeviceData<T, I> *ROGBase<T, I>::getShare(int i) {
     switch (i) {
         case 0:
             return shareA;
@@ -139,7 +139,7 @@ DeviceData<T, I> *GFOBase<T, I>::getShare(int i) {
 }
 
 template<typename T, typename I>
-const DeviceData<T, I> *GFOBase<T, I>::getShare(int i) const {
+const DeviceData<T, I> *ROGBase<T, I>::getShare(int i) const {
     switch (i) {
         case 0:
             return shareA;
@@ -149,73 +149,67 @@ const DeviceData<T, I> *GFOBase<T, I>::getShare(int i) const {
 }
 
 template<typename T, typename I>
-GFOBase<T, I> &GFOBase<T, I>::operator+=(const T rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator+=(const T rhs) {
     if (partyNum == SERVER) {
         *shareA += rhs;
-        *shareA %= q;
     }
     return *this;
 }
 
 template<typename T, typename I>
-GFOBase<T, I> &GFOBase<T, I>::operator-=(const T rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator-=(const T rhs) {
     if (partyNum == SERVER) {
         *shareA -= rhs;
-        *shareA %= q;
     }
     return *this;
 }
 
 template<typename T, typename I>
-GFOBase<T, I> &GFOBase<T, I>::operator*=(const T rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator*=(const T rhs) {
     *shareA *= rhs;
-    *shareA %= q;
     return *this;
 }
 
 template<typename T, typename I>
-GFOBase<T, I> &GFOBase<T, I>::operator%=(const T rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator%=(const T rhs) {
     *shareA %= rhs;
     return *this;
 }
 
 template<typename T, typename I>
-GFOBase<T, I> &GFOBase<T, I>::operator>>=(const T rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator>>=(const T rhs) {
     *shareA >>= rhs;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator+=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator+=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA += rhs;
-        *shareA %= q;
     }
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator-=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator-=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA -= rhs;
-        *shareA %= q;
     }
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator*=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator*=(const DeviceData<T, I2> &rhs) {
     *shareA *= rhs;
-    *shareA %= q;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator^=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator^=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA ^= rhs;
     }
@@ -224,52 +218,50 @@ GFOBase<T, I> &GFOBase<T, I>::operator^=(const DeviceData<T, I2> &rhs) {
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator&=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator&=(const DeviceData<T, I2> &rhs) {
     *shareA &= rhs;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator>>=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator>>=(const DeviceData<T, I2> &rhs) {
     *shareA >>= rhs;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator<<=(const DeviceData<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator<<=(const DeviceData<T, I2> &rhs) {
     *shareA <<= rhs;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator+=(const GFOBase<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator+=(const ROGBase<T, I2> &rhs) {
     *shareA += *rhs.getShare(0);
-    *shareA %= q;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator-=(const GFOBase<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator-=(const ROGBase<T, I2> &rhs) {
     *shareA -= *rhs.getShare(0);
-    *shareA %= q;
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator*=(const ROGBase<T, I2> &rhs) {
 
     size_t size = rhs.size();
 
     if (!rhs.offline_known)
     {
         // Precomputation.
-        GFO<T> x(size), y(size), z(size);
-        PrecomputeObject.getBeaverTriples<T, GFO<T> >(x, y, z);
+        ROG<T> x(size), y(size), z(size);
+        PrecomputeObject.getBeaverTriples<T, ROG<T> >(x, y, z);
         DeviceData<T> e(size), f(size), temp(size);
 
         *x.getShare(0) += *this->getShare(0); 
@@ -291,7 +283,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         temp -= *x.getShare(0);
         temp *= f;
         *this += temp;
-        *this->getShare(0) %= q;
     } 
     else 
     {
@@ -309,22 +300,20 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         if (partyNum == CLIENT) {
             *this->getShare(0) -= r;
             comm_profiler.start();
-            this->getShare(0)->transmit(GFO<T>::otherParty(partyNum));
+            this->getShare(0)->transmit(ROG<T>::otherParty(partyNum));
             this->getShare(0)->join();
             comm_profiler.accumulate("comm-time");
             this->getShare(0)->zero();
             *this->getShare(0) += offline_output;
-            *this->getShare(0) %= q;
         }
         else if (partyNum == SERVER) {
             comm_profiler.start();
-            r.receive(GFO<T>::otherParty(partyNum));
+            r.receive(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *this->getShare(0) += r;
             *this->getShare(0) *= *rhs.getShare(0);
             *this->getShare(0) += offline_output;
-            *this->getShare(0) %= q;
         }
 
         func_profiler.add_comm_round();
@@ -335,18 +324,18 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator^=(const GFOBase<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator^=(const ROGBase<T, I2> &rhs) {
     *shareA ^= *rhs.getShare(0);
     return *this;
 }
 
 template<typename T, typename I>
 template<typename I2>
-GFOBase<T, I> &GFOBase<T, I>::operator&=(const GFOBase<T, I2> &rhs) {
+ROGBase<T, I> &ROGBase<T, I>::operator&=(const ROGBase<T, I2> &rhs) {
 
     size_t size = rhs.size();
-    GFO<T> x(size), y(size), z(size);
-    PrecomputeObject.getBooleanBeaverTriples<T, GFO<T> >(x, y, z);
+    ROG<T> x(size), y(size), z(size);
+    PrecomputeObject.getBooleanBeaverTriples<T, ROG<T> >(x, y, z);
     DeviceData<T> e(size), f(size), temp(size);
 
     *x.getShare(0) ^= *this->getShare(0); 
@@ -374,7 +363,7 @@ GFOBase<T, I> &GFOBase<T, I>::operator&=(const GFOBase<T, I2> &rhs) {
 
 //TO_BE_DONE
 template<typename T, typename I>
-int GFOBase<T, I>::otherParty(int party) {
+int ROGBase<T, I>::otherParty(int party) {
 	switch(party) {
         case SERVER:
             return CLIENT;
@@ -384,26 +373,26 @@ int GFOBase<T, I>::otherParty(int party) {
 }
 
 template<typename T, typename I>
-int GFOBase<T, I>::numShares() {
+int ROGBase<T, I>::numShares() {
     return 1;
 }
 
 template<typename T, typename I>
-GFO<T, I>::GFO(DeviceData<T, I> *a) : GFOBase<T, I>(a) {}
+ROG<T, I>::ROG(DeviceData<T, I> *a) : ROGBase<T, I>(a) {}
 
 template<typename T>
-GFO<T, BufferIterator<T> >::GFO(DeviceData<T> *a) :
-    GFOBase<T, BufferIterator<T> >(a) {}
+ROG<T, BufferIterator<T> >::ROG(DeviceData<T> *a) :
+    ROGBase<T, BufferIterator<T> >(a) {}
 
 template<typename T>
-GFO<T, BufferIterator<T> >::GFO(size_t n) :
+ROG<T, BufferIterator<T> >::ROG(size_t n) :
     _shareA(n),
-    GFOBase<T, BufferIterator<T> >(&_shareA) {}
+    ROGBase<T, BufferIterator<T> >(&_shareA) {}
 
 template<typename T>
-GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertToFixedPoint) :
+ROG<T, BufferIterator<T> >::ROG(std::initializer_list<double> il, bool convertToFixedPoint) :
     _shareA(il.size()),
-    GFOBase<T, BufferIterator<T> >(&_shareA) {
+    ROGBase<T, BufferIterator<T> >(&_shareA) {
 
     std::vector<T> shifted_vals;
     for (double f : il) {
@@ -415,36 +404,36 @@ GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertTo
     }
 
     switch (partyNum) {
-        case GFO<T>::SERVER:
+        case ROG<T>::SERVER:
             thrust::copy(shifted_vals.begin(), shifted_vals.end(), _shareA.begin());
             break;
-        case GFO<T>::CLIENT:
+        case ROG<T>::CLIENT:
             // nothing
             break;
     }
 }
 
 template<typename T>
-void GFO<T, BufferIterator<T> >::resize(size_t n) {
+void ROG<T, BufferIterator<T> >::resize(size_t n) {
     _shareA.resize(n);
 }
 
 template<typename T, typename I>
-void dividePublic(GFO<T, I> &a, T denominator) {
+void dividePublic(ROG<T, I> &a, T denominator) {
 
     *a.getShare(0) /= denominator;
 }
 
 template<typename T, typename I, typename I2>
-void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
+void dividePublic(ROG<T, I> &a, DeviceData<T, I2> &denominators) {
 
-    assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
+    assert(denominators.size() == a.size() && "ROG dividePublic powers size mismatch");
 
     *a.getShare(0) /= denominators;
 }
 
 template<typename T, typename U, typename I, typename I2>
-void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<U, I2> &result) {
+void dividePublic_no_off1(ROG<T, I> &a, T denominator, ROG<U, I2> &result) {
 
     size_t size = a.size();
 
@@ -454,9 +443,9 @@ void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<U, I2> &result) {
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
-void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, I3> &result) {
+void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, I3> &result) {
 
-    assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
+    assert(denominators.size() == a.size() && "ROG dividePublic powers size mismatch");
 
     // TODO: int8 or int4 support.
     size_t size = a.size();
@@ -465,28 +454,26 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     // step 1:  SERVER samples r and send xs + r to CLIENT.
     //          CLIENT computes z = x + r.
     DeviceData<T> r(size);
-    if (partyNum == GFO<uint32_t>::SERVER) {
+    if (partyNum == ROG<uint32_t>::SERVER) {
         // generate r.
         // TODO: randomness.
         r.fill(0);
         
         *a.getShare(0) += r;
-        a %= q;
         comm_profiler.start();
-        a.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
+        a.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         a.getShare(0)->join();
         comm_profiler.accumulate("comm-time");
     }
-    else if (partyNum == GFO<uint32_t>::CLIENT) {
+    else if (partyNum == ROG<uint32_t>::CLIENT) {
         // TODO: randomness.
         r.fill(0);
         comm_profiler.start();
-        r.receive(GFO<T>::otherParty(partyNum));
+        r.receive(ROG<T>::otherParty(partyNum));
         r.join();
         comm_profiler.accumulate("comm-time");
         // compute z.
         r += *a.getShare(0);
-        r %= q;
     }
 
     // step 2:  SERVER and CLIENT run a millionaire's protocol.
@@ -497,8 +484,8 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     rmodd %= denominators;
 
     // step 3: compute <1{rmodd <= zmodd}>_2
-    GFO<T> rmodd_(&rmodd);
-    GFO<U> compare_result(size);
+    ROG<T> rmodd_(&rmodd);
+    ROG<U> compare_result(size);
     compare_result.zero();
     privateCompare(rmodd_, compare_result);
 
@@ -509,12 +496,12 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
     DeviceData<U> temp(size);
     temp.fill(0);
     temp += *compare_result.getShare(0);
-    if (partyNum == GFO<uint32_t>::SERVER) {
+    if (partyNum == ROG<uint32_t>::SERVER) {
         ur *= (T)-1;
 
         // bit2A.
         // placeholder for client's input.
-        GFO<U> another_input(size); 
+        ROG<U> another_input(size); 
         another_input.fill(0);
         compare_result.offline_known = true;
         another_input *= compare_result;
@@ -522,10 +509,10 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
         another_input += temp;
         result += another_input;
     }
-    if (partyNum == GFO<uint32_t>::CLIENT) {
+    if (partyNum == ROG<uint32_t>::CLIENT) {
         // bit2A.
         // placeholder for server's input.
-        GFO<U> another_input(size); 
+        ROG<U> another_input(size); 
         another_input.fill(0);
         another_input.offline_known = true;
         compare_result *= another_input;
@@ -544,7 +531,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
 /// @tparam I DeviceData iterator.
 /// @param a The input of SERVER or CLIENT.
 template<typename T, typename U, typename I, typename I2>
-void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
+void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
     // TODO: int8 or int4 support.  uint8 √
     // notice: uint8 is enough to hold prexor.
     size_t T_bits_count = sizeof(T) * 8;
@@ -561,7 +548,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
     // TODO: int8 support.
     gpu::bitexpand(input.getShare(0), &b);
     
-    if (partyNum == GFO<uint32_t>::SERVER) {
+    if (partyNum == ROG<uint32_t>::SERVER) {
         // MILL step 2: SERVER sample deltas, compute alpha = 1 - 2*deltas. 
         // TODO: randomn number.
         // test passed. run test passed.
@@ -569,8 +556,6 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         gpu::vectorExpand(&delta, &alpha, T_bits_count);
         alpha *= (T)-2;
         alpha += 1;
-
-        // TODO: offline known random mask to bi.
         DeviceData<U> rbi(size * T_bits_count);
         DeviceData<U> rbn1(size);
         rbi.fill(1);
@@ -578,18 +563,18 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
         // MILL step 3: SERVER and CLIENT evaluate bi together.
         stride = T_bits_count;
-        GFO<U> bi_xor(size*T_bits_count);
+        ROG<U> bi_xor(size*T_bits_count);
         bi_xor.fill(0);
         *bi_xor.getShare(0) += b;
         bi_xor.offline_known = true;
-        GFO<U> another_input(size*T_bits_count);
+        ROG<U> another_input(size*T_bits_count);
         another_input.fill(0);
         another_input *= bi_xor;
         another_input %= p;
         another_input *= (T)-2;
         another_input += b;
         another_input %= p;
-        GFO<U> &prefix_xor = another_input;
+        ROG<U> &prefix_xor = another_input;
         prefix_xor *= 3;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
@@ -620,9 +605,9 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
         // MILL step 5: transmission.
         comm_profiler.start();
-        bn1.transmit(GFO<T>::otherParty(partyNum));
+        bn1.transmit(ROG<T>::otherParty(partyNum));
         bn1.join();
-        b.transmit(GFO<T>::otherParty(partyNum));
+        b.transmit(ROG<T>::otherParty(partyNum));
         b.join();
         comm_profiler.accumulate("comm-time");
 
@@ -631,7 +616,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         result.zero();
         *result.getShare(0) += delta;
     }
-    else if (partyNum == GFO<uint32_t>::CLIENT) {
+    else if (partyNum == ROG<uint32_t>::CLIENT) {
 
         // MILL step 2: pass.
         // TODO: randomn number.
@@ -639,10 +624,10 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
         // MILL step 3: SERVER and CLIENT evaluate bi together.
         stride = T_bits_count;
-        GFO<U> bi_xor(size*T_bits_count);
+        ROG<U> bi_xor(size*T_bits_count);
         bi_xor.fill(0);
         *bi_xor.getShare(0) += b;
-        GFO<U> another_input(size*T_bits_count);
+        ROG<U> another_input(size*T_bits_count);
         another_input.fill(0);
         another_input.offline_known = true;
         bi_xor *= another_input;
@@ -650,7 +635,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         bi_xor *= (T)-2;
         bi_xor += b;
         bi_xor %= p;
-        GFO<U> &prefix_xor = another_input;
+        ROG<U> &prefix_xor = another_input;
         prefix_xor *= 3;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
@@ -678,9 +663,9 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         DeviceData<U> recvbn1(size);
         recvbi.fill(0), recvbn1.fill(0);
         comm_profiler.start();
-        recvbn1.receive(GFO<T>::otherParty(partyNum));
+        recvbn1.receive(ROG<T>::otherParty(partyNum));
         recvbn1.join();
-        recvbi.receive(GFO<T>::otherParty(partyNum));
+        recvbi.receive(ROG<T>::otherParty(partyNum));
         recvbi.join();
         comm_profiler.accumulate("comm-time");
         b += recvbi;
@@ -713,15 +698,15 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 }
 
 template<typename T, typename I, typename I2>
-void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
+void reconstruct(ROG<T, I> &in, DeviceData<T, I2> &out) {
 
     comm_profiler.start();
     // 1 - send shareA to next party
-    in.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
+    in.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
 
     // 2 - receive shareA from previous party into DeviceBuffer 
     DeviceData<T> rxShare(in.size());
-    rxShare.receive(GFO<T>::otherParty(partyNum));
+    rxShare.receive(ROG<T>::otherParty(partyNum));
 
     in.getShare(0)->join();
     rxShare.join();
@@ -731,13 +716,12 @@ void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
     out.zero();
     out += *in.getShare(0);
     out += rxShare;
-    out %= q;
 
     func_profiler.add_comm_round();
 }
 
 template<typename T>
-void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
+void matmul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
         int M, int N, int K,
         bool transpose_a, bool transpose_b, bool transpose_c, T truncation) {
 
@@ -752,13 +736,13 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
  * return b*(y-x) + x. if b=0, return x; else return y. b is a boolean sharing.
 */
 // template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-// void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+// void selectShare(const ROG<T, I> &x, const ROG<T, I2> &y, const ROG<U, I3> &b, ROG<T, I4> &z) {
 
-//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
+//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "ROG selectShare input size mismatch");
 
 //     //TO_BE_DONE
-//     GFO<T> c(x.size());
-//     GFO<U> cbits(b.size());
+//     ROG<T> c(x.size());
+//     ROG<U> cbits(b.size());
 
 //     // b XOR c, then open -> e
 //     cbits ^= b;
@@ -767,11 +751,11 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
 //     reconstruct(cbits, e);
 
 //     // d = 1-c if e=1 else d = c       ->        d = (e)(1-c) + (1-e)(c)
-//     GFO<T> d(e.size());
+//     ROG<T> d(e.size());
 //     convex_comb(d, c, e);
 
 //     // z = ((y - x) * d) + x
-//     GFO<T> result(x.size());
+//     ROG<T> result(x.size());
 //     result += y;
 //     result -= x;
 //     result *= d;
@@ -785,12 +769,12 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
  * return b*(y-x) + x. if b=0, return x; else return y. b is a arithmatic sharing.
 */
 template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+void selectShare(const ROG<T, I> &x, const ROG<T, I2> &y, const ROG<U, I3> &b, ROG<T, I4> &z) {
 
-    assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
+    assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "ROG selectShare input size mismatch");
 
     //TO_BE_DONE
-    GFO<T> b_T(x.size());
+    ROG<T> b_T(x.size());
     b_T.zero();
     z.zero();
     z += y;
@@ -803,13 +787,13 @@ void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, G
 }
 
 // template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-// void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+// void selectShare(const ROG<T, I> &x, const ROG<T, I2> &y, const ROG<U, I3> &b, ROG<T, I4> &z) {
 
-//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
+//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "ROG selectShare input size mismatch");
 
 //     //TO_BE_DONE
-//     GFO<T> c(x.size());
-//     GFO<U> cbits(b.size());
+//     ROG<T> c(x.size());
+//     ROG<U> cbits(b.size());
 
 //     // b XOR c, then open -> e
 //     cbits ^= b;
@@ -818,11 +802,11 @@ void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, G
 //     reconstruct(cbits, e);
 
 //     // d = 1-c if e=1 else d = c       ->        d = (e)(1-c) + (1-e)(c)
-//     GFO<T> d(e.size());
+//     ROG<T> d(e.size());
 //     convex_comb(d, c, e);
 
 //     // z = ((y - x) * d) + x
-//     GFO<T> result(x.size());
+//     ROG<T> result(x.size());
 //     result += y;
 //     result -= x;
 //     result *= d;
@@ -833,7 +817,7 @@ void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, G
 // }
 
 template<typename T, typename I, typename I2>
-void sqrt(GFO<T, I> &in, GFO<T, I2> &out) {
+void sqrt(ROG<T, I> &in, ROG<T, I2> &out) {
     /*
      * Approximations:
      *   > sqrt(x) = 0.424 + 0.584(x)
@@ -843,7 +827,7 @@ void sqrt(GFO<T, I> &in, GFO<T, I2> &out) {
 }
 
 template<typename T, typename I, typename I2>
-void inverse(GFO<T, I> &in, GFO<T, I2> &out) {
+void inverse(ROG<T, I> &in, ROG<T, I2> &out) {
     /*
      * Approximations:
      *     1/x = 2.838 - 1.935(x)
@@ -853,7 +837,7 @@ void inverse(GFO<T, I> &in, GFO<T, I2> &out) {
 }
 
 template<typename T, typename I, typename I2>
-void sigmoid(GFO<T, I> &in, GFO<T, I2> &out) {
+void sigmoid(ROG<T, I> &in, ROG<T, I2> &out) {
     /*
      * Approximation:
      *   > sigmoid(x) = 0.494286 + 0.275589(x) + -0.038751(x^2)
@@ -862,16 +846,16 @@ void sigmoid(GFO<T, I> &in, GFO<T, I2> &out) {
 }
 
 template<typename T>
-void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
+void localFprop(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
         int batchSize, int imageHeight, int imageWidth, int Din,
         int Dout, int filterHeight, int filterWidth,
         int paddingHeight, int paddingWidth,
         int stride, int dilation) {
 
-    GFO<T> x(A.size()), y(B.size()), z(C.size());
+    ROG<T> x(A.size()), y(B.size()), z(C.size());
     if (!B.offline_known)
     {
-        PrecomputeObject.getConvBeaverTriple_fprop<T, GFO<T> >(x, y, z, 
+        PrecomputeObject.getConvBeaverTriple_fprop<T, ROG<T> >(x, y, z, 
             batchSize, imageHeight, imageWidth, Din,
             Dout, filterHeight, filterWidth,
             paddingHeight, paddingWidth,
@@ -922,18 +906,18 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         // CLIENT: r^C.
         DeviceData<T> r(A.size());
         r.fill(0);
-        if (partyNum == GFO<uint32_t>::CLIENT) {
+        if (partyNum == ROG<uint32_t>::CLIENT) {
             r -= *A.getShare(0);
             r *= (T)-1;
             comm_profiler.start();
-            r.transmit(GFO<T>::otherParty(partyNum));
+            r.transmit(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
         }
-        else if (partyNum == GFO<uint32_t>::SERVER) {
+        else if (partyNum == ROG<uint32_t>::SERVER) {
             comm_profiler.start();
-            r.receive(GFO<T>::otherParty(partyNum));
+            r.receive(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             r += *A.getShare(0);
@@ -953,16 +937,16 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
 }
 
 template<typename T>
-void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
+void localDgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
         int batchSize, int outputHeight, int outputWidth, int Dout,
         int filterHeight, int filterWidth, int Din,
         int paddingHeight, int paddingWidth, int stride, int dilation,
         int imageHeight, int imageWidth) {
 
-    GFO<T> x(A.size()), y(B.size()), z(C.size());
+    ROG<T> x(A.size()), y(B.size()), z(C.size());
     if (!B.offline_known)
     {
-        PrecomputeObject.getConvBeaverTriple_dgrad<T, GFO<T> >(x, y, z, 
+        PrecomputeObject.getConvBeaverTriple_dgrad<T, ROG<T> >(x, y, z, 
             batchSize, outputHeight, outputWidth, Dout,
             filterHeight, filterWidth, Din,
             paddingHeight, paddingWidth, stride, dilation,
@@ -1013,18 +997,18 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         // CLIENT: r^C.
         DeviceData<T> r(A.size());
         r.fill(0);
-        if (partyNum == GFO<uint32_t>::CLIENT) {
+        if (partyNum == ROG<uint32_t>::CLIENT) {
             r -= *A.getShare(0);
             r *= (T)-1;
             comm_profiler.start();
-            r.transmit(GFO<T>::otherParty(partyNum));
+            r.transmit(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
         }
-        else if (partyNum == GFO<uint32_t>::SERVER) {
+        else if (partyNum == ROG<uint32_t>::SERVER) {
             comm_profiler.start();
-            r.receive(GFO<T>::otherParty(partyNum));
+            r.receive(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             r += *A.getShare(0);
@@ -1044,16 +1028,16 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
 }
 
 template<typename T>
-void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
+void localWgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
         int batchSize, int outputHeight, int outputWidth, int Dout,
         int imageHeight, int imageWidth, int Din,
         int filterHeight, int filterWidth,
         int paddingHeight, int paddingWidth, int stride, int dilation) {
 
-    GFO<T> x(A.size()), y(B.size()), z(C.size());
+    ROG<T> x(A.size()), y(B.size()), z(C.size());
     if (!B.offline_known)
     {
-        PrecomputeObject.getConvBeaverTriple_wgrad<T, GFO<T> >(x, y, z, 
+        PrecomputeObject.getConvBeaverTriple_wgrad<T, ROG<T> >(x, y, z, 
             batchSize, outputHeight, outputWidth, Dout,
             filterHeight, filterWidth, Din,
             paddingHeight, paddingWidth, stride, dilation,
@@ -1104,18 +1088,18 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         // CLIENT: r^C.
         DeviceData<T> r(A.size());
         r.fill(0);
-        if (partyNum == GFO<uint32_t>::CLIENT) {
+        if (partyNum == ROG<uint32_t>::CLIENT) {
             comm_profiler.start();
             r -= *A.getShare(0);
             r *= (T)-1;
-            r.transmit(GFO<T>::otherParty(partyNum));
+            r.transmit(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
         }
-        else if (partyNum == GFO<uint32_t>::SERVER) {
+        else if (partyNum == ROG<uint32_t>::SERVER) {
             comm_profiler.start();
-            r.receive(GFO<T>::otherParty(partyNum));
+            r.receive(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             r += *A.getShare(0);
@@ -1135,7 +1119,7 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
 }
 
 template<typename T>
-void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
+void convolution(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
         cutlass::conv::Operator op,
         int batchSize, int imageHeight, int imageWidth, int filterSize,
         int Din, int Dout, int stride, int padding, int truncation) {
@@ -1183,13 +1167,13 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
 /// @param input    <x>.
 /// @param result   <1{x>=0}>_b.
 template<typename T, typename U, typename I, typename I2>
-void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
+void dReLU(const ROG<T, I> &input, ROG<U, I2> &result) {
 
     size_t size = input.size();
 
     // TODO: how to constrain in input x's range?
-    T bound = GFORCE_BOUND;
-    GFO<T> input_(size);
+    T bound = ROGUE_BOUND;
+    ROG<T> input_(size);
     input_.zero();
     input_ += input;
     input_ += bound;
@@ -1197,7 +1181,7 @@ void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
 }
     
 template<typename T, typename U, typename I, typename I2, typename I3>
-void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
+void ReLU(const ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult) {
 
     //TO_BE_DONE
 
@@ -1215,7 +1199,7 @@ void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
-void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
+void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k) {
 
     //TO_BE_DONE
 
@@ -1231,11 +1215,11 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
     func_profiler.start();
     StridedRange<I> even0Range(input.getShare(0)->begin(), input.getShare(0)->end(), stride);
     DeviceData<T, SRIterator> even0(even0Range.begin(), even0Range.end());
-    GFO<T, SRIterator> even(&even0);
+    ROG<T, SRIterator> even(&even0);
 
     StridedRange<I> odd0Range(input.getShare(0)->begin() + offset, input.getShare(0)->end(), stride);
     DeviceData<T, SRIterator> odd0(odd0Range.begin(), odd0Range.end());
-    GFO<T, SRIterator> odd(&odd0);
+    ROG<T, SRIterator> odd(&odd0);
     func_profiler.accumulate("range creation");
 
     //printf("func-maxpool-post-rangecreate\n");
@@ -1247,7 +1231,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
         // diff = even - odd
         func_profiler.start();
-        GFO<T> diff(even.size());
+        ROG<T> diff(even.size());
         diff.zero();
         diff += even;
         diff -= odd;
@@ -1258,7 +1242,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
         // DRELU diff -> b
         func_profiler.start();
-        GFO<U> b(even.size());
+        ROG<U> b(even.size());
         dReLU(diff, b);
         func_profiler.accumulate("maxpool-drelu");
 
@@ -1266,7 +1250,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
         //printMemUsage();
      
         // TODO: remove copy.
-        GFO<T> b_T(b.size());
+        ROG<T> b_T(b.size());
         thrust::copy(b.getShare(0)->begin(), 
             b.getShare(0)->end(),
             b_T.getShare(0)->begin());
@@ -1299,10 +1283,10 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
         // expandCompare b -> expandedB
         func_profiler.start();
-        GFO<U> negated(b.size());
+        ROG<U> negated(b.size());
         negated.fill(1);
         negated -= b;
-        GFO<U> expandedB(input.size());
+        ROG<U> expandedB(input.size());
 
         gpu::expandCompare(*b.getShare(0), *negated.getShare(0), *expandedB.getShare(0));
 
@@ -1326,7 +1310,7 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
  
     // diff = even - odd
     func_profiler.start();
-    GFO<T> diff(even.size());
+    ROG<T> diff(even.size());
     diff.zero();
     diff += even;
     diff -= odd;
@@ -1334,13 +1318,13 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
     // DRELU diff -> b
     func_profiler.start();
-    GFO<U> b(even.size());
+    ROG<U> b(even.size());
     dReLU(diff, b);
     func_profiler.accumulate("maxpool-z-drelu");
  
     func_profiler.start();
     // TODO: remove copy.
-    GFO<T> b_T(b.size());
+    ROG<T> b_T(b.size());
     thrust::copy(b.getShare(0)->begin(), 
         b.getShare(0)->end(),
         b_T.getShare(0)->begin());
@@ -1364,10 +1348,10 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
     // expandCompare b -> expandedB
     func_profiler.start();
-    GFO<U> negated(b.size());
+    ROG<U> negated(b.size());
     negated.fill(1);
     negated -= b;
-    GFO<U> expandedB(input.size());
+    ROG<U> expandedB(input.size());
     gpu::expandCompare(*b.getShare(0), *negated.getShare(0), *expandedB.getShare(0));
     func_profiler.accumulate("maxpool-z-expandCompare");
  
@@ -1378,17 +1362,17 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 }
 
 template<typename T>
-void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
+void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
         int M, int N, int K,
         bool transpose_a, bool transpose_b, bool transpose_c) {
     
-    GFO<T> x(a.size()), y(b.size()), z(c.size());
+    ROG<T> x(a.size()), y(b.size()), z(c.size());
 
     int a_rows = transpose_a ? K : M; int a_cols = transpose_a ? M : K;
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
     if (!b.offline_known)
     {
-        PrecomputeObject.getMatrixBeaverTriple<T, GFO<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b);
+        PrecomputeObject.getMatrixBeaverTriple<T, ROG<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b);
 
         DeviceData<T> e(x.size()), f(y.size()), temp(z.size());
 
@@ -1423,19 +1407,18 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
         // CLIENT: r^C.
         DeviceData<T> r(a.size());
         r.fill(0);
-        if (partyNum == GFO<uint32_t>::CLIENT) {
+        if (partyNum == ROG<uint32_t>::CLIENT) {
             r -= *a.getShare(0);
             r *= (T)-1;
-            r %= q;
             comm_profiler.start();
-            r.transmit(GFO<T>::otherParty(partyNum));
+            r.transmit(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *c.getShare(0) += offline_output;
         }
-        else if (partyNum == GFO<uint32_t>::SERVER) {
+        else if (partyNum == ROG<uint32_t>::SERVER) {
             comm_profiler.start();
-            r.receive(GFO<T>::otherParty(partyNum));
+            r.receive(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             r += *a.getShare(0);
@@ -1450,7 +1433,7 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
 }
 
 template<typename T, typename I, typename I2>
-void carryOut(GFO<T, I> &p, GFO<T, I> &g, int k, GFO<T, I2> &out) {
+void carryOut(ROG<T, I> &p, ROG<T, I> &g, int k, ROG<T, I2> &out) {
 
     // get zip iterators on both p and g
     //  -> pEven, pOdd, gEven, gOdd
@@ -1462,19 +1445,19 @@ void carryOut(GFO<T, I> &p, GFO<T, I> &g, int k, GFO<T, I2> &out) {
 
     StridedRange<I> pEven0Range(p.getShare(0)->begin(), p.getShare(0)->end(), stride);
     DeviceData<T, SRIterator> pEven0(pEven0Range.begin(), pEven0Range.end());
-    GFO<T, SRIterator> pEven(&pEven0);
+    ROG<T, SRIterator> pEven(&pEven0);
 
     StridedRange<I> pOdd0Range(p.getShare(0)->begin() + offset, p.getShare(0)->end(), stride);
     DeviceData<T, SRIterator> pOdd0(pOdd0Range.begin(), pOdd0Range.end());
-    GFO<T, SRIterator> pOdd(&pOdd0);
+    ROG<T, SRIterator> pOdd(&pOdd0);
 
     StridedRange<I> gEven0Range(g.getShare(0)->begin(), g.getShare(0)->end(), stride);
     DeviceData<T, SRIterator> gEven0(gEven0Range.begin(), gEven0Range.end());
-    GFO<T, SRIterator> gEven(&gEven0);
+    ROG<T, SRIterator> gEven(&gEven0);
 
     StridedRange<I> gOdd0Range(g.getShare(0)->begin() + offset, g.getShare(0)->end(), stride);
     DeviceData<T, SRIterator> gOdd0(gOdd0Range.begin(), gOdd0Range.end());
-    GFO<T, SRIterator> gOdd(&gOdd0);
+    ROG<T, SRIterator> gOdd(&gOdd0);
 
     while(k > 1) {
 
@@ -1527,12 +1510,12 @@ void carryOut(GFO<T, I> &p, GFO<T, I> &g, int k, GFO<T, I2> &out) {
 }
 
 template<typename T, typename I, typename I2>
-void getPowers(GFO<T, I> &in, DeviceData<T, I2> &pow) {
+void getPowers(ROG<T, I> &in, DeviceData<T, I2> &pow) {
 
-    GFO<T> powers(pow.size()); // accumulates largest power yet tested that is less than the input val
-    GFO<T> currentPowerBit(in.size()); // current power
-    GFO<T> diff(in.size());
-    GFO<uint8_t> comparisons(in.size());
+    ROG<T> powers(pow.size()); // accumulates largest power yet tested that is less than the input val
+    ROG<T> currentPowerBit(in.size()); // current power
+    ROG<T> diff(in.size());
+    ROG<uint8_t> comparisons(in.size());
 
     for (int bit = 0; bit < sizeof(T) * 8; bit++) {
         currentPowerBit.fill(bit);
@@ -1546,7 +1529,7 @@ void getPowers(GFO<T, I> &in, DeviceData<T, I2> &pow) {
 
         // 0 -> keep val, 1 -> update to current known largest power less than input
         // TODO: remove copy.
-        GFO<T> b(comparisons.size());
+        ROG<T> b(comparisons.size());
         thrust::copy(comparisons.getShare(0)->begin(), 
             comparisons.getShare(0)->end(),
             b.getShare(0)->begin());
@@ -1562,12 +1545,12 @@ void getPowers(GFO<T, I> &in, DeviceData<T, I2> &pow) {
 }
 
 template<typename T, typename I, typename I2, typename Functor>
-void taylorSeries(GFO<T, I> &in, GFO<T, I2> &out,
+void taylorSeries(ROG<T, I> &in, ROG<T, I2> &out,
         double a0, double a1, double a2,
         Functor fn) {
 
     out.zero();
-    GFO<T> scratch(out.size());
+    ROG<T> scratch(out.size());
 
     DeviceData<T> pow(out.size());
     getPowers(in, pow);
@@ -1641,7 +1624,7 @@ void taylorSeries(GFO<T, I> &in, GFO<T, I2> &out,
         pow.begin(), pow.end(), negativePow.begin(),
         filter_negative_powers<T>());
 
-    for (int share = 0; share < GFO<T>::numShares(); share++) {
+    for (int share = 0; share < ROG<T>::numShares(); share++) {
         thrust::transform(
             out.getShare(share)->begin(), out.getShare(share)->end(), negativePow.begin(), out.getShare(share)->begin(),
             lshift_functor<T>()); 
@@ -1649,12 +1632,12 @@ void taylorSeries(GFO<T, I> &in, GFO<T, I2> &out,
 }
 
 template<typename T, typename U, typename I, typename I2>
-void convex_comb(GFO<T, I> &a, GFO<T, I> &c, DeviceData<U, I2> &b) {
+void convex_comb(ROG<T, I> &a, ROG<T, I> &c, DeviceData<U, I2> &b) {
 
     thrust::for_each(
         thrust::make_zip_iterator(thrust::make_tuple(b.begin(), c.getShare(0)->begin(), a.getShare(0)->begin())),
         thrust::make_zip_iterator(thrust::make_tuple(b.end(), c.getShare(0)->end(), a.getShare(0)->end())),
-        GFO_convex_comb_functor(partyNum)
+        ROG_convex_comb_functor(partyNum)
     );
 }
 

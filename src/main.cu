@@ -17,6 +17,7 @@
 #include "mpc/FPC.h"
 #include "mpc/OPC.h"
 #include "mpc/GForce.h"
+#include "mpc/Rogue.h"
 #include "util/util.cuh"
 #include "../ext/cxxopts.hpp"
 #include <json.hpp>
@@ -135,7 +136,11 @@ int main(int argc, char** argv) {
 #ifdef GFORCE
     NeuralNetwork<uint64_t, GFO> net(&nn_config, piranha_config["nn_seed"]);
 #else
+#ifdef ROGUE
+    NeuralNetwork<uint64_t, ROG> net(&nn_config, piranha_config["nn_seed"]);
+#else
     NeuralNetwork<uint64_t, RSS> net(&nn_config, piranha_config["nn_seed"]);
+#endif
 #endif
 #endif
 #endif

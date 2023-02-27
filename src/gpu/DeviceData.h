@@ -149,6 +149,11 @@ class DeviceDataBase {
             return *this;
         }
 
+        DeviceDataBase<T, Iterator> &operator%=(const T rhs) {
+            thrust::transform(begin(), end(), begin(), scalar_mod_functor<T>(rhs));
+            return *this;
+        }
+
         // DeviceDataBase<T, Iterator> &operator%=(const T rhs) {
         //     thrust::transform(begin(), end(), begin(), scalar_mod_functor<T>(rhs));
         //     return *this;

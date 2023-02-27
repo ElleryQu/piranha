@@ -142,3 +142,6 @@ template class ReLULayer<uint64_t, OPC>;
 
 template class ReLULayer<uint32_t, GFO>;
 template class ReLULayer<uint64_t, GFO>;
+
+template class ReLULayer<uint32_t, ROG>;
+template class ReLULayer<uint64_t, ROG>;

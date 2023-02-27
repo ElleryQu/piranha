@@ -242,3 +242,6 @@ template class FCLayer<uint64_t, OPC>;
 
 template class FCLayer<uint32_t, GFO>;
 template class FCLayer<uint64_t, GFO>;
+
+template class FCLayer<uint32_t, ROG>;
+template class FCLayer<uint64_t, ROG>;

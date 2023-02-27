@@ -47,7 +47,7 @@ NeuralNetwork<T, Share>::NeuralNetwork(NeuralNetConfig* config, int seed) : inpu
         } else if (config->layerConf[i]->type.compare("Res") == 0) {
             layers.push_back(new ResLayer<T, Share>((ResLayerConfig *) config->layerConf[i], i, seed+i));
         } else {
-			error("Only FC, CNN, ReLU, Maxpool, Averagepool, ResLayer, and LN layer types currently supported");
+			error("Only NeuralNetwork, CNN, ReLU, Maxpool, Averagepool, ResLayer, and LN layer types currently supported");
         }
 	}
 }
@@ -520,3 +520,6 @@ template class NeuralNetwork<uint64_t, OPC>;
 
 template class NeuralNetwork<uint32_t, GFO>;
 template class NeuralNetwork<uint64_t, GFO>;
+
+template class NeuralNetwork<uint32_t, ROG>;
+template class NeuralNetwork<uint64_t, ROG>;

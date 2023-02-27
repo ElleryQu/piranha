@@ -198,3 +198,6 @@ template class MaxpoolLayer<uint64_t, OPC>;
 
 template class MaxpoolLayer<uint32_t, GFO>;
 template class MaxpoolLayer<uint64_t, GFO>;
+
+template class MaxpoolLayer<uint32_t, ROG>;
+template class MaxpoolLayer<uint64_t, ROG>;

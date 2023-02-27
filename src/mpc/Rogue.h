@@ -1,5 +1,5 @@
 /*
- * GFO.h
+ * ROG.h
  */
 
 #pragma once
@@ -13,11 +13,11 @@
 #include "../globals.h"
 
 template <typename T, typename I>
-class GFOBase {
+class ROGBase {
 
     protected:
         
-        GFOBase(DeviceData<T, I> *a, bool offline_known=false);
+        ROGBase(DeviceData<T, I> *a, bool offline_known=false);
 
     public:
 
@@ -37,36 +37,36 @@ class GFOBase {
         typedef I iterator_type;
         bool offline_known;
 
-        GFOBase<T, I> &operator+=(const T rhs);
-        GFOBase<T, I> &operator-=(const T rhs);
-        GFOBase<T, I> &operator*=(const T rhs);
-        GFOBase<T, I> &operator%=(const T rhs);
-        GFOBase<T, I> &operator>>=(const T rhs);
+        ROGBase<T, I> &operator+=(const T rhs);
+        ROGBase<T, I> &operator-=(const T rhs);
+        ROGBase<T, I> &operator*=(const T rhs);
+        ROGBase<T, I> &operator%=(const T rhs);
+        ROGBase<T, I> &operator>>=(const T rhs);
 
         template<typename I2>
-        GFOBase<T, I> &operator+=(const DeviceData<T, I2> &rhs);
+        ROGBase<T, I> &operator+=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator-=(const DeviceData<T, I2> &rhs);
+        ROGBase<T, I> &operator-=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator*=(const DeviceData<T, I2> &rhs);        
+        ROGBase<T, I> &operator*=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator^=(const DeviceData<T, I2> &rhs);
+        ROGBase<T, I> &operator^=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator&=(const DeviceData<T, I2> &rhs);
+        ROGBase<T, I> &operator&=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator>>=(const DeviceData<T, I2> &rhs);
+        ROGBase<T, I> &operator>>=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator<<=(const DeviceData<T, I2> &rhs);
+        ROGBase<T, I> &operator<<=(const DeviceData<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator+=(const GFOBase<T, I2> &rhs);
+        ROGBase<T, I> &operator+=(const ROGBase<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator-=(const GFOBase<T, I2> &rhs);
+        ROGBase<T, I> &operator-=(const ROGBase<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator*=(const GFOBase<T, I2> &rhs);
+        ROGBase<T, I> &operator*=(const ROGBase<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator^=(const GFOBase<T, I2> &rhs);
+        ROGBase<T, I> &operator^=(const ROGBase<T, I2> &rhs);
         template<typename I2>
-        GFOBase<T, I> &operator&=(const GFOBase<T, I2> &rhs);
+        ROGBase<T, I> &operator&=(const ROGBase<T, I2> &rhs);
 
     protected:
         
@@ -74,21 +74,21 @@ class GFOBase {
 };
 
 template<typename T, typename I = BufferIterator<T> >
-class GFO : public GFOBase<T, I> {
+class ROG : public ROGBase<T, I> {
 
     public:
 
-        GFO(DeviceData<T, I> *a);
+        ROG(DeviceData<T, I> *a);
 };
 
 template<typename T>
-class GFO<T, BufferIterator<T> > : public GFOBase<T, BufferIterator<T> > {
+class ROG<T, BufferIterator<T> > : public ROGBase<T, BufferIterator<T> > {
 
     public:
 
-        GFO(DeviceData<T> *a);
-        GFO(size_t n);
-        GFO(std::initializer_list<double> il, bool convertToFixedPoint = true);
+        ROG(DeviceData<T> *a);
+        ROG(size_t n);
+        ROG(std::initializer_list<double> il, bool convertToFixedPoint = true);
 
         void resize(size_t n);
 
@@ -100,59 +100,57 @@ class GFO<T, BufferIterator<T> > : public GFOBase<T, BufferIterator<T> > {
 // Functionality
 
 template<typename T, typename I>
-void dividePublic(GFO<T, I> &a, T denominator);
+void dividePublic(ROG<T, I> &a, T denominator);
 
 template<typename T, typename I, typename I2>
-void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators);
+void dividePublic(ROG<T, I> &a, DeviceData<T, I2> &denominators);
 
 template<typename T, typename U, typename I, typename I2>
-void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<U, I2> &result);
+void dividePublic_no_off1(ROG<T, I> &a, T denominator, ROG<U, I2> &result);
 
 template<typename T, typename U, typename I, typename I2, typename I3>
-void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, I3> &result);
+void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, I3> &result);
 
 template<typename T, typename U, typename I, typename I2>
-void privateCompare(GFO<T, I> &input, GFO<U, I2> &result);
+void privateCompare(ROG<T, I> &input, ROG<U, I2> &result);
 
 template<typename T, typename I, typename I2>
-void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out);
+void reconstruct(ROG<T, I> &in, DeviceData<T, I2> &out);
 
 template<typename T>
-void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
+void matmul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
         int M, int N, int K,
         bool transpose_a, bool transpose_b, bool transpose_c, T truncation);
 
 template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z);
+void selectShare(const ROG<T, I> &x, const ROG<T, I2> &y, const ROG<U, I3> &b, ROG<T, I4> &z);
 
 template<typename T, typename I, typename I2>
-void sqrt(GFO<T, I> &in, GFO<T, I2> &out);
+void sqrt(ROG<T, I> &in, ROG<T, I2> &out);
 
 template<typename T, typename I, typename I2>
-void inverse(GFO<T, I> &in, GFO<T, I2> &out);
+void inverse(ROG<T, I> &in, ROG<T, I2> &out);
 
 template<typename T, typename I, typename I2>
-void sigmoid(GFO<T, I> &in, GFO<T, I2> &out);
+void sigmoid(ROG<T, I> &in, ROG<T, I2> &out);
 
 template<typename T>
-void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
+void convolution(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
         cutlass::conv::Operator op,
         int batchSize, int imageHeight, int imageWidth, int filterSize,
         int Din, int Dout, int stride, int padding, int truncation);
 
 // TODO change into 2 arguments with subtraction, pointer NULL indicates compare w/ 0
 template<typename T, typename U, typename I, typename I2>
-void dReLU(const GFO<T, I> &input, GFO<U, I2> &result);
+void dReLU(const ROG<T, I> &input, ROG<U, I2> &result);
  
 template<typename T, typename U, typename I, typename I2, typename I3>
-void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult);
+void ReLU(const ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult);
 
 template<typename T, typename U, typename I, typename I2, typename I3>
-void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k);
+void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k);
 
-static int p = 257;
-// 23 bit.
-static int q = 7340033;
+// static int p = 257;
 
-#include "GForce.inl"
+#include "Rogue.inl"
 

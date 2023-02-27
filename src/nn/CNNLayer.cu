@@ -245,3 +245,6 @@ template class CNNLayer<uint64_t, OPC>;
 
 template class CNNLayer<uint32_t, GFO>;
 template class CNNLayer<uint64_t, GFO>;
+
+template class CNNLayer<uint32_t, ROG>;
+template class CNNLayer<uint64_t, ROG>;
