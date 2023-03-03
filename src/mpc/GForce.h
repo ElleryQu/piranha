@@ -152,7 +152,9 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k);
 
 static int p = 257;
 // 23 bit.
-static int q = 7340033;
+// static int q = 7340033;
+// 60 bit.
+static uint64_t q = 1081244548441771579;
 
 #include "GForce.inl"
 
