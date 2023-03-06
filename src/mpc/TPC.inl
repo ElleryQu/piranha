@@ -143,6 +143,12 @@ const DeviceData<T, I> *TPCBase<T, I>::getShare(int i) const {
 }
 
 template<typename T, typename I>
+const std::string& TPCBase<T, I>::getProt() {
+    const static std::string prot = "TPC";
+    return prot;
+}
+
+template<typename T, typename I>
 TPCBase<T, I> &TPCBase<T, I>::operator+=(const T rhs) {
     if (partyNum == PARTY_A) {
         *shareA += rhs;

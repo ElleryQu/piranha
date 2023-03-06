@@ -39,6 +39,8 @@ class OPCBase {
         // TODO: silly.
         bool offline_known;
 
+        static const std::string& getProt();
+
         OPCBase<T, I> &operator+=(const T rhs);
         OPCBase<T, I> &operator-=(const T rhs);
         OPCBase<T, I> &operator*=(const T rhs);

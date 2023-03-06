@@ -46,6 +46,8 @@ class FPCBase {
         typedef I iterator_type;
         // TODO: silly.
         bool offline_known;
+
+        static const std::string& getProt();
     
         static bool areOpposites(int partyI, int partyJ);
         static int partyG(int partyI, int partyJ);

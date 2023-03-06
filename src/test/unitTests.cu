@@ -1,10 +1,43 @@
 
 #include "unitTests.h"
 
+std::string profiling_path;
+std::ofstream pf;
+
 int runTests(int argc, char **argv) {
+    profiling_path = "output/profiling/RogueProfiling.tsv";
+    pf = std::ofstream(profiling_path);
+    writeProfile(
+        pf, "protocol", "function",
+        "input_size", "question_scale", 
+        "online_computation time",
+        "online_communication_rounds",
+        "online_communication_tx_size",
+        "online_communication_rx_size",
+        "online_communication_time"
+    );
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+// template<typename T1, typename T2>
+// void writeProfile(
+//     std::ofstream& pf, 
+//     std::string prot, 
+//     std::string func,
+//     T1 input_size,
+//     string question_scale,
+//     T2 online_comp_time,
+//     T1 online_comm_rounds,
+//     T2 online_comm_tx_size,
+//     T2 online_comm_rx_size,
+//     T2 online_comm_time
+// ) {
+//     pf << prot << '\t' << prot << '\t' << func << '\t' << input_size << '\t' \
+//         << question_scale << '\t' << online_comp_time << '\t' << online_comm_rounds \
+//         << '\t' << online_comm_tx_size << '\t' << online_comm_rx_size << '\t'\
+//         << online_comm_time << std::endl;
+// }
 
 // -- TPC Tests --
 

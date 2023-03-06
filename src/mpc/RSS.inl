@@ -166,6 +166,12 @@ const DeviceData<T, I> *RSSBase<T, I>::getShare(int i) const {
 }
 
 template<typename T, typename I>
+const std::string& RSSBase<T, I>::getProt() {
+    const static std::string prot = "RSS";
+    return prot;
+}
+
+template<typename T, typename I>
 RSSBase<T, I> &RSSBase<T, I>::operator+=(const T rhs) {
     if (partyNum == PARTY_A) {
         *shareA += rhs;

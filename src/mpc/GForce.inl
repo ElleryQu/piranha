@@ -113,9 +113,12 @@ void GFOBase<T, I>::fill(T val) {
 /// @param v 
 template<typename T, typename I>
 void GFOBase<T, I>::setPublic(std::vector<double> &v) {
+    typedef typename std::make_signed<T>::type S;
     std::vector<T> shifted_vals;
     for (double f : v) {
-        shifted_vals.push_back((T) (f * (1 << FLOAT_PRECISION)));
+        shifted_vals.push_back(
+            (T)((S) (f * (1 << FLOAT_PRECISION)) % q)
+        );
     }
 
     switch (partyNum) {
@@ -149,10 +152,15 @@ const DeviceData<T, I> *GFOBase<T, I>::getShare(int i) const {
 }
 
 template<typename T, typename I>
+const std::string& GFOBase<T, I>::getProt() {
+    const static std::string prot = "GFO";
+    return prot;
+}
+
+template<typename T, typename I>
 GFOBase<T, I> &GFOBase<T, I>::operator+=(const T rhs) {
     if (partyNum == SERVER) {
         *shareA += rhs;
-        *shareA %= q;
     }
     return *this;
 }
@@ -161,7 +169,6 @@ template<typename T, typename I>
 GFOBase<T, I> &GFOBase<T, I>::operator-=(const T rhs) {
     if (partyNum == SERVER) {
         *shareA -= rhs;
-        *shareA %= q;
     }
     return *this;
 }
@@ -169,7 +176,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator-=(const T rhs) {
 template<typename T, typename I>
 GFOBase<T, I> &GFOBase<T, I>::operator*=(const T rhs) {
     *shareA *= rhs;
-    *shareA %= q;
     return *this;
 }
 
@@ -190,7 +196,6 @@ template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator+=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA += rhs;
-        *shareA %= q;
     }
     return *this;
 }
@@ -200,7 +205,6 @@ template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator-=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA -= rhs;
-        *shareA %= q;
     }
     return *this;
 }
@@ -209,7 +213,6 @@ template<typename T, typename I>
 template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator*=(const DeviceData<T, I2> &rhs) {
     *shareA *= rhs;
-    *shareA %= q;
     return *this;
 }
 
@@ -247,7 +250,6 @@ template<typename T, typename I>
 template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator+=(const GFOBase<T, I2> &rhs) {
     *shareA += *rhs.getShare(0);
-    *shareA %= q;
     return *this;
 }
 
@@ -255,7 +257,6 @@ template<typename T, typename I>
 template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator-=(const GFOBase<T, I2> &rhs) {
     *shareA -= *rhs.getShare(0);
-    *shareA %= q;
     return *this;
 }
 
@@ -314,7 +315,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
             comm_profiler.accumulate("comm-time");
             this->getShare(0)->zero();
             *this->getShare(0) += offline_output;
-            *this->getShare(0) %= q;
         }
         else if (partyNum == SERVER) {
             comm_profiler.start();
@@ -324,7 +324,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
             *this->getShare(0) += r;
             *this->getShare(0) *= *rhs.getShare(0);
             *this->getShare(0) += offline_output;
-            *this->getShare(0) %= q;
         }
 
         func_profiler.add_comm_round();
@@ -405,12 +404,15 @@ GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertTo
     _shareA(il.size()),
     GFOBase<T, BufferIterator<T> >(&_shareA) {
 
+    typedef typename std::make_signed<T>::type S;
     std::vector<T> shifted_vals;
     for (double f : il) {
         if (convertToFixedPoint) {
-            shifted_vals.push_back((T) (f * (1 << FLOAT_PRECISION)));
+            shifted_vals.push_back(
+                (T) (((S)(f * (1 << FLOAT_PRECISION))) % q)
+                );
         } else {
-            shifted_vals.push_back((T) f);
+            shifted_vals.push_back(((T) f) % q);
         }
     }
 
@@ -432,7 +434,11 @@ void GFO<T, BufferIterator<T> >::resize(size_t n) {
 template<typename T, typename I>
 void dividePublic(GFO<T, I> &a, T denominator) {
 
+    #ifdef HIGH_Q
     *a.getShare(0) /= denominator;
+    #else
+    // TODO: implement GForce native solution.
+    #endif
 }
 
 template<typename T, typename I, typename I2>
@@ -440,7 +446,11 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
 
     assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
 
+    #ifdef HIGH_Q
     *a.getShare(0) /= denominators;
+    #else
+    // TODO: implement GForce native solution.
+    #endif
 }
 
 template<typename T, typename U, typename I, typename I2>
@@ -569,6 +579,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         gpu::vectorExpand(&delta, &alpha, T_bits_count);
         alpha *= (T)-2;
         alpha += 1;
+        alpha %= p;
 
         // TODO: offline known random mask to bi.
         DeviceData<U> rbi(size * T_bits_count);
@@ -585,12 +596,12 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         GFO<U> another_input(size*T_bits_count);
         another_input.fill(0);
         another_input *= bi_xor;
-        another_input %= p;
         another_input *= (T)-2;
-        another_input += b;
         another_input %= p;
+        another_input += b;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
+        prefix_xor %= p;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
@@ -646,12 +657,12 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         another_input.fill(0);
         another_input.offline_known = true;
         bi_xor *= another_input;
-        bi_xor %= p;
         bi_xor *= (T)-2;
         bi_xor += b;
         bi_xor %= p;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
+        prefix_xor %= p;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
@@ -672,6 +683,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         StridedRange<I2> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
         DeviceData<U, SRIterator> reduce_xor(bn1_range.begin(), bn1_range.end());
         bn1 += reduce_xor;
+        bn1 %= p;
 
         // MILL step 5: transmission.
         DeviceData<U> recvbi(size * T_bits_count);
@@ -701,6 +713,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
             DeviceData<U, SRIterator> b_even(b_even_range.begin(), b_even_range.end());
             DeviceData<U, SRIterator> b_odd(b_odd_range.begin(), b_odd_range.end());
             b_even *= b_odd;
+            b_even %= p;
             stride *= 2;
         }
         StridedRange<I2> b_range(b.begin(), b.end(), stride);
@@ -733,6 +746,10 @@ void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
     out += rxShare;
     out %= q;
 
+    thrust::transform(
+        out.begin(), out.end(), out.begin(),
+        field_restruct_functor<T>(q));
+
     func_profiler.add_comm_round();
 }
 
@@ -744,8 +761,8 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
     localMatMul(a, b, c, M, N, K, transpose_a, transpose_b, transpose_c);
 
     // truncate
-    // dividePublic(c, (T)1 << truncation);
-    c >>= truncation;
+    dividePublic(c, (T)1 << truncation);
+    c %= q;
 }
 
 /**
@@ -1170,8 +1187,8 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
     }
 
     // *C.getShare(0) += localResult;
-    // dividePublic(C, (T)1 << truncation);
-    C >>= truncation;
+    dividePublic(C, (T)1 << truncation);
+    C %= q;
 }
 
 // TODO change into 2 arguments with subtraction, pointer NULL indicates compare w/ 0
@@ -1426,7 +1443,6 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
         if (partyNum == GFO<uint32_t>::CLIENT) {
             r -= *a.getShare(0);
             r *= (T)-1;
-            r %= q;
             comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();

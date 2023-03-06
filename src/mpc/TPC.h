@@ -38,6 +38,8 @@ class TPCBase {
         // TODO: silly.
         bool offline_known;
 
+        static const std::string& getProt();
+
         TPCBase<T, I> &operator+=(const T rhs);
         TPCBase<T, I> &operator-=(const T rhs);
         TPCBase<T, I> &operator*=(const T rhs);

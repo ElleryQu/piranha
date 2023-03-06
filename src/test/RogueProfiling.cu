@@ -5,14 +5,122 @@ extern Profiler func_profiler;
 
 extern std::default_random_engine generator;
 
+#define TEST_USLEEP_TIME 0
+#define OFFLINE_KNOWN true
+#define EXP_TIMES 100
+
 template<typename T>
-struct EvalTest: public testing::Test {};
+struct EvalTest: public testing::Test {
+    using ParamType = T;
+};
 
 extern void random_vector(std::vector<double> &v, int size);
 
-TEST(EvalTest, MatMul_TPC_Profiling) {
+using Types = testing::Types<TPC<uint64_t>, GFO<uint64_t>, ROG<uint64_t> >;
+
+TYPED_TEST_CASE(EvalTest, Types);
+
+TYPED_TEST(EvalTest, Mult_Profiling) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
 
     if (partyNum >= 2) return;
+     comm_profiler.clear();
+
+    std::vector<double> rnd_vals;
+
+    std::vector<int> N = {1, 10, 100, 1000, 10000, 100000};
+    for (int i = 0; i < N.size(); i++) {
+
+        int n = N[i];
+
+        random_vector(rnd_vals, n);
+        Share a(n);
+        a.setPublic(rnd_vals);
+
+        random_vector(rnd_vals, n);
+        Share b(n);
+        b.setPublic(rnd_vals);
+        b.offline_known = OFFLINE_KNOWN;
+
+        Profiler profiler;
+        profiler.start();
+
+        a *= b;
+
+        profiler.accumulate("mult");
+
+        if (i == 0) continue; // sacrifice run to spin up GPU
+        printf("mult (N=%d) - %f sec.\n", n, profiler.get_elapsed("mult") / 1000.0);
+        writeProfile(
+            pf, Share::getProt(), "mult", n, std::to_string(1), 
+            profiler.get_elapsed("mult") / 1000.0,
+            255,
+            comm_profiler.get_comm_tx_bytes()/1024/1024,
+            comm_profiler.get_comm_rx_bytes()/1024/1024,
+            comm_profiler.get_elapsed("mult") / 1000.0
+            );
+        usleep(TEST_USLEEP_TIME);
+    }
+}
+
+TYPED_TEST(EvalTest, Mult_Profiling_BENCHMARK) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
+
+    if (partyNum >= 2) return;
+    comm_profiler.clear();
+
+    std::vector<double> rnd_vals;
+
+    std::vector<int> Np = {10, 10000, 1 << 17};
+    for (int j = 0; j < Np.size(); j++){
+        std::vector<int> N(EXP_TIMES + 1, Np[j]);
+        N[0] = 1;
+        Profiler profiler;
+        for (int i = 0; i < N.size(); i++) {
+
+            int n = N[i];
+
+            random_vector(rnd_vals, n);
+            Share a(n);
+            a.setPublic(rnd_vals);
+
+            random_vector(rnd_vals, n);
+            Share b(n);
+            b.setPublic(rnd_vals);
+            b.offline_known = OFFLINE_KNOWN;
+
+            profiler.start();
+            a *= b;
+            profiler.accumulate("mult_bm");
+
+            if (i == 0) { // sacrifice run to spin up GPU
+                profiler.clear();
+                continue;
+            }
+        }
+        printf("mult_bm (N=%d) - %f sec.\n", Np[j], profiler.get_elapsed("mult_bm") / 1000.0 / EXP_TIMES);
+        writeProfile(
+            pf, Share::getProt(), "mult_bm", Np[j], 1, 
+            profiler.get_elapsed("mult_bm") / 1000.0 / EXP_TIMES,
+            255,
+            comm_profiler.get_comm_tx_bytes() / 1024. / 1024. / EXP_TIMES,
+            comm_profiler.get_comm_rx_bytes() / 1024. / 1024. / EXP_TIMES,
+            comm_profiler.get_elapsed("mult") / 1000.0 / EXP_TIMES
+            );
+    }
+}
+
+TYPED_TEST(EvalTest, MatMul_Profiling) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
+
+    if (partyNum >= 2) return;
+     comm_profiler.clear();
 
     std::vector<double> rnd_vals;
 
@@ -22,14 +130,15 @@ TEST(EvalTest, MatMul_TPC_Profiling) {
         int n = N[i];
 
         random_vector(rnd_vals, n * n);
-        TPC<uint64_t> a(n*n);
+        Share a(n*n);
         a.setPublic(rnd_vals);
 
         random_vector(rnd_vals, n * n);
-        TPC<uint64_t> b(n*n);
+        Share b(n*n);
         b.setPublic(rnd_vals);
+        b.offline_known = OFFLINE_KNOWN;
 
-        TPC<uint64_t> c(n*n);
+        Share c(n*n);
 
         Profiler profiler;
         profiler.start();
@@ -39,149 +148,80 @@ TEST(EvalTest, MatMul_TPC_Profiling) {
         profiler.accumulate("matmul");
 
         if (i < 1) continue; // sacrifice run to spin up GPU
-        printf("TPC - matmul (N=%d) - %f sec.\n", n, profiler.get_elapsed("matmul") / 1000.0);
+        printf("matmul (N=%d) - %f sec.\n", n, profiler.get_elapsed("matmul") / 1000.0);
+        writeProfile(
+            pf, Share::getProt(), "matmul", 1, std::to_string(n), 
+            profiler.get_elapsed("matmul") / 1000.0,
+            255,
+            comm_profiler.get_comm_tx_bytes()/1024/1024,
+            comm_profiler.get_comm_rx_bytes()/1024/1024,
+            comm_profiler.get_elapsed("matmul") / 1000.0
+            );
+        usleep(TEST_USLEEP_TIME);
     }
 }
 
-TEST(EvalTest, MatMul_GFO_Profiling) {
+TYPED_TEST(EvalTest, MatMul_Profiling_BENCHMARK) {
+
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
 
     if (partyNum >= 2) return;
+    comm_profiler.clear();
 
     std::vector<double> rnd_vals;
 
-    std::vector<int> N = {1000, 10, 30, 50, 100, 300};
-    for (int i = 0; i < N.size(); i++) {
-
-        int n = N[i];
-
-        random_vector(rnd_vals, n * n);
-        GFO<uint64_t> a(n*n);
-        a.setPublic(rnd_vals);
-
-        random_vector(rnd_vals, n * n);
-        GFO<uint64_t> b(n*n);
-        b.setPublic(rnd_vals);
-        b.offline_known = true;
-
-        GFO<uint64_t> c(n*n);
-
+    std::vector<int> Np = {10, 100, 1000};
+    for (int j = 0; j < Np.size(); j++){
+        std::vector<int> N(EXP_TIMES + 1, Np[j]);
+        N[0] = 1;
         Profiler profiler;
-        profiler.start();
+        for (int i = 0; i < N.size(); i++) {
 
-        matmul(a, b, c, n, n, n, false, false, false, (uint64_t)FLOAT_PRECISION);
+            int n = N[i];
 
-        profiler.accumulate("matmul");
+            random_vector(rnd_vals, n * n);
+            Share a(n*n);
+            a.setPublic(rnd_vals);
 
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("GFO - matmul (N=%d) - %f sec.\n", n, profiler.get_elapsed("matmul") / 1000.0);
+            random_vector(rnd_vals, n * n);
+            Share b(n*n);
+            b.setPublic(rnd_vals);
+            b.offline_known = OFFLINE_KNOWN;
+
+            Share c(n*n);
+
+            profiler.start();
+
+            matmul(a, b, c, n, n, n, false, false, false, (uint64_t)FLOAT_PRECISION);
+
+            profiler.accumulate("matmul_bm");
+
+            if (i == 0) { // sacrifice run to spin up GPU
+                profiler.clear();
+                continue;
+            }
+        }
+        printf("matmul_bm (N=%d) - %f sec.\n", Np[j], profiler.get_elapsed("matmul_bm") / 1000.0 / EXP_TIMES);
+        writeProfile(
+            pf, Share::getProt(), "matmul_bm", 1, Np[j], 
+            profiler.get_elapsed("matmul_bm") / 1000.0 / EXP_TIMES,
+            255,
+            comm_profiler.get_comm_tx_bytes() / 1024. / 1024. / EXP_TIMES,
+            comm_profiler.get_comm_rx_bytes() / 1024. / 1024. / EXP_TIMES,
+            comm_profiler.get_elapsed("matmul") / 1000.0 / EXP_TIMES
+            );
     }
 }
 
-TEST(EvalTest, MatMul_GFO_Profiling_2) {
+TYPED_TEST(EvalTest, Conv_Profiling) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
 
     if (partyNum >= 2) return;
-
-    std::vector<double> rnd_vals;
-
-    std::vector<int> N = {1000, 10, 10, 10, 100, 100, 100};
-    for (int i = 0; i < N.size(); i++) {
-
-        int n = N[i];
-
-        random_vector(rnd_vals, n * n);
-        GFO<uint64_t> a(n*n);
-        a.setPublic(rnd_vals);
-
-        random_vector(rnd_vals, n * n);
-        GFO<uint64_t> b(n*n);
-        b.setPublic(rnd_vals);
-        b.offline_known = true;
-
-        GFO<uint64_t> c(n*n);
-
-        Profiler profiler;
-        profiler.start();
-
-        matmul(a, b, c, n, n, n, false, false, false, (uint64_t)FLOAT_PRECISION);
-
-        profiler.accumulate("matmul");
-
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("GFO - matmul (N=%d) - %f sec.\n", n, profiler.get_elapsed("matmul") / 1000.0);
-    }
-}
-
-TEST(EvalTest, MatMul_ROG_Profiling) {
-
-    if (partyNum >= 2) return;
-
-    std::vector<double> rnd_vals;
-
-    std::vector<int> N = {1000, 10, 30, 50, 100, 300};
-    for (int i = 0; i < N.size(); i++) {
-
-        int n = N[i];
-
-        random_vector(rnd_vals, n * n);
-        ROG<uint64_t> a(n*n);
-        a.setPublic(rnd_vals);
-
-        random_vector(rnd_vals, n * n);
-        ROG<uint64_t> b(n*n);
-        b.setPublic(rnd_vals);
-        b.offline_known = true;
-
-        ROG<uint64_t> c(n*n);
-
-        Profiler profiler;
-        profiler.start();
-
-        matmul(a, b, c, n, n, n, false, false, false, (uint64_t)FLOAT_PRECISION);
-
-        profiler.accumulate("matmul");
-
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("ROG - matmul (N=%d) - %f sec.\n", n, profiler.get_elapsed("matmul") / 1000.0);
-    }
-}
-
-TEST(EvalTest, MatMul_ROG_Profiling_2) {
-
-    if (partyNum >= 2) return;
-
-    std::vector<double> rnd_vals;
-
-    std::vector<int> N = {1000, 10, 10, 10, 100, 100, 100};
-    for (int i = 0; i < N.size(); i++) {
-
-        int n = N[i];
-
-        random_vector(rnd_vals, n * n);
-        ROG<uint64_t> a(n*n);
-        a.setPublic(rnd_vals);
-
-        random_vector(rnd_vals, n * n);
-        ROG<uint64_t> b(n*n);
-        b.setPublic(rnd_vals);
-        b.offline_known = true;
-
-        ROG<uint64_t> c(n*n);
-
-        Profiler profiler;
-        profiler.start();
-
-        matmul(a, b, c, n, n, n, false, false, false, (uint64_t)FLOAT_PRECISION);
-
-        profiler.accumulate("matmul");
-
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("ROG - matmul (N=%d) - %f sec.\n", n, profiler.get_elapsed("matmul") / 1000.0);
-    }
-}
-
-TEST(EvalTest, Conv_TPC_Profiling) {
-
-    if (partyNum >= 2) return;
+    comm_profiler.clear();
 
     std::vector<double> rnd_vals;
 
@@ -207,15 +247,16 @@ TEST(EvalTest, Conv_TPC_Profiling) {
 
         int a_size = N * din * im_size * im_size;
         random_vector(rnd_vals, a_size);
-        TPC<uint64_t> a(a_size);
+        Share a(a_size);
         a.setPublic(rnd_vals);
 
         int b_size = din * dout * f_size * f_size;
         random_vector(rnd_vals, b_size);
-        TPC<uint64_t> b(b_size);
+        Share b(b_size);
         b.setPublic(rnd_vals);
+        b.offline_known = OFFLINE_KNOWN;
 
-        TPC<uint64_t> c(N * dout * out_size * out_size);
+        Share c(N * dout * out_size * out_size);
 
         Profiler profiler;
         profiler.start();
@@ -225,129 +266,42 @@ TEST(EvalTest, Conv_TPC_Profiling) {
         profiler.accumulate("conv");
 
         if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("TPC - conv (N=1, Iw/h=%d, Din=%d, Dout=%d, f=%d) - %f sec.\n", im_size, din, dout, f_size, profiler.get_elapsed("conv") / 1000.0);
+        ostringstream os;
+        os << din << ' ' << im_size << ' ' << dout << ' ' << f_size << ' ' << "CHimNfHf";
+        printf("conv (N=1, Iw/h=%d, Din=%d, Dout=%d, f=%d) - %f sec.\n", im_size, din, dout, f_size, profiler.get_elapsed("conv") / 1000.0);
+        writeProfile(
+            pf, Share::getProt(), "conv", N, os.str(), 
+            profiler.get_elapsed("conv") / 1000.0,
+            255,
+            comm_profiler.get_comm_tx_bytes()/1024./1024.,
+            comm_profiler.get_comm_rx_bytes()/1024./1024.,
+            comm_profiler.get_elapsed("conv") / 1000.0
+            );
+        usleep(TEST_USLEEP_TIME);
     }
 }
 
-TEST(EvalTest, Conv_GFO_Profiling) {
+TYPED_TEST(EvalTest, ReLU_Profiling) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
 
     if (partyNum >= 2) return;
+    comm_profiler.clear();
 
     std::vector<double> rnd_vals;
 
-    std::vector<std::tuple<int, int, int, int, int> > dims = {
-        std::make_tuple(28, 1, 16, 5, 24),
-        std::make_tuple(28, 1, 16, 5, 24),
-        std::make_tuple(12, 20, 50, 3, 10),
-        std::make_tuple(32, 3, 50, 7, 24),
-        std::make_tuple(64, 3, 32, 5, 60),
-        std::make_tuple(224, 3, 64, 5, 220)
-    };
-    for (int i = 0; i < dims.size(); i++) {
-
-        auto dim = dims[i];
-
-        int im_size = std::get<0>(dim);
-        int din = std::get<1>(dim);
-        int dout = std::get<2>(dim);
-        int f_size = std::get<3>(dim);
-        int out_size = std::get<4>(dim);
-
-        int N = 1;
-
-        int a_size = N * din * im_size * im_size;
-        random_vector(rnd_vals, a_size);
-        GFO<uint64_t> a(a_size);
-        a.setPublic(rnd_vals);
-
-        int b_size = din * dout * f_size * f_size;
-        random_vector(rnd_vals, b_size);
-        GFO<uint64_t> b(b_size);
-        b.setPublic(rnd_vals);
-        b.offline_known = true;
-
-        GFO<uint64_t> c(N * dout * out_size * out_size);
-
-        Profiler profiler;
-        profiler.start();
-
-        convolution(a, b, c, cutlass::conv::Operator::kFprop, N, im_size, im_size, f_size, din, dout, 1, 0, FLOAT_PRECISION);
-
-        profiler.accumulate("conv");
-
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("GFO - conv (N=1, Iw/h=%d, Din=%d, Dout=%d, f=%d) - %f sec.\n", im_size, din, dout, f_size, profiler.get_elapsed("conv") / 1000.0);
-    }
-}
-
-TEST(EvalTest, Conv_ROG_Profiling) {
-
-    if (partyNum >= 2) return;
-
-    std::vector<double> rnd_vals;
-
-    std::vector<std::tuple<int, int, int, int, int> > dims = {
-        std::make_tuple(28, 1, 16, 5, 24),
-        std::make_tuple(28, 1, 16, 5, 24),
-        std::make_tuple(12, 20, 50, 3, 10),
-        std::make_tuple(32, 3, 50, 7, 24),
-        std::make_tuple(64, 3, 32, 5, 60),
-        std::make_tuple(224, 3, 64, 5, 220)
-    };
-    for (int i = 0; i < dims.size(); i++) {
-
-        auto dim = dims[i];
-
-        int im_size = std::get<0>(dim);
-        int din = std::get<1>(dim);
-        int dout = std::get<2>(dim);
-        int f_size = std::get<3>(dim);
-        int out_size = std::get<4>(dim);
-
-        int N = 1;
-
-        int a_size = N * din * im_size * im_size;
-        random_vector(rnd_vals, a_size);
-        ROG<uint64_t> a(a_size);
-        a.setPublic(rnd_vals);
-
-        int b_size = din * dout * f_size * f_size;
-        random_vector(rnd_vals, b_size);
-        ROG<uint64_t> b(b_size);
-        b.setPublic(rnd_vals);
-        b.offline_known = true;
-
-        ROG<uint64_t> c(N * dout * out_size * out_size);
-
-        Profiler profiler;
-        profiler.start();
-
-        convolution(a, b, c, cutlass::conv::Operator::kFprop, N, im_size, im_size, f_size, din, dout, 1, 0, FLOAT_PRECISION);
-
-        profiler.accumulate("conv");
-
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("ROG - conv (N=1, Iw/h=%d, Din=%d, Dout=%d, f=%d) - %f sec.\n", im_size, din, dout, f_size, profiler.get_elapsed("conv") / 1000.0);
-    }
-}
-
-TEST(EvalTest, ReLU_TPC_Profiling) {
-
-    if (partyNum >= 2) return;
-
-    std::vector<double> rnd_vals;
-
-    std::vector<int> N = {1, 10, 100, 1000, 10000, 100000};
+    std::vector<int> N = {1, 10, 100, 1000, 10000};
     for (int i = 0; i < N.size(); i++) {
 
         int n = N[i];
 
         random_vector(rnd_vals, n);
-        TPC<uint64_t> a(n);
+        Share a(n);
         a.setPublic(rnd_vals);
 
-        TPC<uint64_t> c(n);
-        TPC<uint8_t> dc(n);
+        Share c(n);
+        Share dc(n);
 
         Profiler profiler;
         profiler.start();
@@ -357,71 +311,70 @@ TEST(EvalTest, ReLU_TPC_Profiling) {
         profiler.accumulate("relu");
 
         if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("TPC - relu (N=%d) - %f sec.\n", n, profiler.get_elapsed("relu") / 1000.0);
+        printf("relu (N=%d) - %f sec.\n", n, profiler.get_elapsed("relu") / 1000.0);
+        writeProfile(
+            pf, Share::getProt(), "relu", n, std::to_string(1), 
+            profiler.get_elapsed("relu") / 1000.0,
+            255,
+            comm_profiler.get_comm_tx_bytes()/1024/1024,
+            comm_profiler.get_comm_rx_bytes()/1024/1024,
+            comm_profiler.get_elapsed("relu") / 1000.0
+            );
+        usleep(1001);
     }
 }
 
-TEST(EvalTest, ReLU_GFO_Profiling) {
+TYPED_TEST(EvalTest, ReLU_Profiling_BENCHMARK) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
 
     if (partyNum >= 2) return;
+    comm_profiler.clear();
 
     std::vector<double> rnd_vals;
 
-    std::vector<int> N = {1, 10, 100, 1000, 10000, 100000};
-    for (int i = 0; i < N.size(); i++) {
-
-        int n = N[i];
-
-        random_vector(rnd_vals, n);
-        GFO<uint64_t> a(n);
-        a.setPublic(rnd_vals);
-
-        GFO<uint64_t> c(n);
-        GFO<uint8_t> dc(n);
-
+    std::vector<int> Np = {10, 1000, 10000};
+    for (int j = 0; j < Np.size(); j++){
+        std::vector<int> N(EXP_TIMES + 1, Np[j]);
+        N[0] = 1;
         Profiler profiler;
-        profiler.start();
+        for (int i = 0; i < N.size(); i++) {
 
-        ReLU(a, c, dc);
+            int n = N[i];
 
-        profiler.accumulate("relu");
+            random_vector(rnd_vals, n);
+            Share a(n);
+            a.setPublic(rnd_vals);
 
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("GFO - relu (N=%d) - %f sec.\n", n, profiler.get_elapsed("relu") / 1000.0);
+            Share c(n);
+            Share dc(n);
+
+            profiler.start();
+
+            ReLU(a, c, dc);
+
+            profiler.accumulate("relu_bm");
+
+            if (i == 0) { // sacrifice run to spin up GPU
+                profiler.clear();
+                continue;
+            }
+        }
+        printf("relu_bm (N=%d) - %f sec.\n", Np[j], profiler.get_elapsed("relu_bm") / 1000.0 / EXP_TIMES);
+        writeProfile(
+            pf, Share::getProt(), "relu_bm", Np[j], std::to_string(1), 
+            profiler.get_elapsed("relu_bm") / 1000.0 / EXP_TIMES,
+            255,
+            comm_profiler.get_comm_tx_bytes() / 1024. / 1024. / EXP_TIMES,
+            comm_profiler.get_comm_rx_bytes() / 1024. / 1024. / EXP_TIMES,
+            comm_profiler.get_elapsed("relu") / 1000.0 / EXP_TIMES
+            );
     }
 }
+       
 
-TEST(EvalTest, ReLU_ROG_Profiling) {
-
-    if (partyNum >= 2) return;
-
-    std::vector<double> rnd_vals;
-
-    std::vector<int> N = {1, 10, 100, 1000, 10000, 100000};
-    for (int i = 0; i < N.size(); i++) {
-
-        int n = N[i];
-
-        random_vector(rnd_vals, n);
-        ROG<uint64_t> a(n);
-        a.setPublic(rnd_vals);
-
-        ROG<uint64_t> c(n);
-        ROG<uint8_t> dc(n);
-
-        Profiler profiler;
-        profiler.start();
-
-        ReLU(a, c, dc);
-
-        profiler.accumulate("relu");
-
-        if (i == 0) continue; // sacrifice run to spin up GPU
-        printf("ROG - relu (N=%d) - %f sec.\n", n, profiler.get_elapsed("relu") / 1000.0);
-    }
-}
-
-// TEST(EvalTest, Delphi_Convolutions) {
+// TYPED_TEST(EvalTest, Delphi_Convolutions) {
 
 //     if (partyNum >= 2) return;
 
@@ -474,7 +427,7 @@ TEST(EvalTest, ReLU_ROG_Profiling) {
 //     }
 // }
 
-// TEST(EvalTest, GForce_Relu) {
+// TYPED_TEST(EvalTest, GForce_Relu) {
 
 //     if (partyNum >= 2) return;
 

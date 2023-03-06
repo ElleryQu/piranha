@@ -141,3 +141,20 @@ struct is_not_a_functor {
         return (T) (x != a);
     }
 };
+
+/// @brief  equal to 0. return 1{x!=a}.
+template<typename T>
+struct field_restruct_functor {    
+
+    const T q;
+
+    field_restruct_functor(T _q) : q(_q) {}
+    __host__ __device__ T operator()(const T &x) const {
+        if (x <= (T)(q-1)/2){
+            return x;
+        }
+        else{
+            return (T)(x - q);
+        }
+    }
+};

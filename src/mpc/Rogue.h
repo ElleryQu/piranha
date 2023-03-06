@@ -37,6 +37,8 @@ class ROGBase {
         typedef I iterator_type;
         bool offline_known;
 
+        static const std::string& getProt();
+
         ROGBase<T, I> &operator+=(const T rhs);
         ROGBase<T, I> &operator-=(const T rhs);
         ROGBase<T, I> &operator*=(const T rhs);

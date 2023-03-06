@@ -40,6 +40,7 @@ class RSSBase {
         // TODO: silly.
         bool offline_known;
 
+        static const std::string& getProt();
 
         RSSBase<T, I> &operator+=(const T rhs);
         RSSBase<T, I> &operator-=(const T rhs);

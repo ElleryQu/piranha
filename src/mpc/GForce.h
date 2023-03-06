@@ -37,6 +37,8 @@ class GFOBase {
         typedef I iterator_type;
         bool offline_known;
 
+        static const std::string& getProt();
+
         GFOBase<T, I> &operator+=(const T rhs);
         GFOBase<T, I> &operator-=(const T rhs);
         GFOBase<T, I> &operator*=(const T rhs);
@@ -151,10 +153,11 @@ template<typename T, typename U, typename I, typename I2, typename I3>
 void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k);
 
 static int p = 257;
-// 23 bit.
+// // 23 bit.
 // static int q = 7340033;
 // 60 bit.
-static uint64_t q = 1081244548441771579;
+#define HIGH_Q
+static uint64_t q = 2138816513;
 
 #include "GForce.inl"
 

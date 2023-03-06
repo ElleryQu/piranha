@@ -113,6 +113,12 @@ const DeviceData<T, I> *OPCBase<T, I>::getShare(int i) const {
 }
 
 template<typename T, typename I>
+const std::string& OPCBase<T, I>::getProt() {
+    const static std::string prot = "OPC";
+    return prot;
+}
+
+template<typename T, typename I>
 OPCBase<T, I> &OPCBase<T, I>::operator+=(const T rhs) {
     *shareA += rhs;
     return *this;

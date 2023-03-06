@@ -182,6 +182,12 @@ const DeviceData<T, I> *FPCBase<T, I>::getShare(int i) const {
     }
 }
 
+template<typename T, typename I>
+const std::string& FPCBase<T, I>::getProt() {
+    const static std::string prot = "FPC";
+    return prot;
+}
+
 // Scalar operations
 template<typename T, typename I>
 FPCBase<T, I> &FPCBase<T, I>::operator+=(const T rhs) {

@@ -74,10 +74,10 @@ TYPED_TEST(RogueTest, Mult) {
 
     if (partyNum >= Share::numParties) return;
 
-    // Share a ({12, 24, 3, 5, -2, -3}, false); 
-    // Share b ({1, 0, 11, 3, -1, 11}, false);
-    Share a ({12, 24, 3, 5, -2}, false); 
-    Share b ({1, 0, 11, 3, -1}, false);
+    Share a ({12, 24, 3, 5, -2, -3}, false); 
+    Share b ({1, 0, 11, 3, -1, 11}, false);
+    // Share a ({12, 24, 3, 5, -2}, false); 
+    // Share b ({1, 0, 11, 3, -1}, false);
 
     DeviceData<T> result(a.size());
 
@@ -87,8 +87,8 @@ TYPED_TEST(RogueTest, Mult) {
     a *= b;
     reconstruct(a, result);
 
-    // std::vector<double> expected = {12, 0, 33, 15, 2, -33};
-    std::vector<double> expected = {12, 0, 33, 15, 2};
+    std::vector<double> expected = {12, 0, 33, 15, 2, -33};
+    // std::vector<double> expected = {12, 0, 33, 15, 2};
     assertDeviceData(result, expected, false);
 }
 

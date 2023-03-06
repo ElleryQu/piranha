@@ -54,6 +54,18 @@
 #include "../gpu/gemm.cuh"
 #include "../gpu/conv.cuh"
 
+#define writeProfile(pf, prot, func, input_size, question_scale,\
+    online_comp_time, online_comm_rounds, online_comm_tx_size, \
+    online_comm_rx_size, online_comm_time) \
+    {\
+        stringstream _os;\
+        _os << prot << '\t' << func << '\t' << input_size << '\t' \
+        << question_scale << '\t' << online_comp_time << '\t' << online_comm_rounds \
+        << '\t' << online_comm_tx_size << '\t' << online_comm_rx_size << '\t'\
+        << online_comm_time << std::endl;\
+        pf << _os.str();\
+    }
+
 extern int partyNum;
 extern Profiler func_profiler;
 extern Profiler comm_profiler;
@@ -61,5 +73,24 @@ extern Profiler comm_profiler;
 extern size_t INPUT_SIZE, LAST_LAYER_SIZE, WITH_NORMALIZATION;
 extern void getBatch(std::ifstream &, std::istream_iterator<double> &, std::vector<double> &);
 
+#ifndef PF_PATH
+#define PF_PATH
+extern std::string profiling_path;
+extern std::ofstream pf;
+#endif
+
 int runTests(int argc, char **argv);
 
+// template<typename T1, typename T2>
+// void writeProfile(
+//     std::ofstream& pf, 
+//     std::string prot, 
+//     std::string func,
+//     T1 input_size,
+//     string question_scale,
+//     T2 online_comp_time,
+//     T1 online_comm_rounds,
+//     T2 online_comm_tx_size,
+//     T2 online_comm_rx_size,
+//     T2 online_comm_time
+// );

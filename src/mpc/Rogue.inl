@@ -29,6 +29,7 @@ extern Precompute PrecomputeObject;
 extern Profiler comm_profiler;
 extern Profiler func_profiler;
 
+
 // Functors
 
 struct ROG_convex_comb_functor {
@@ -146,6 +147,12 @@ const DeviceData<T, I> *ROGBase<T, I>::getShare(int i) const {
         default:
             return nullptr;
     }
+}
+
+template<typename T, typename I>
+const std::string& ROGBase<T, I>::getProt() {
+    const static std::string prot = "ROG";
+    return prot;
 }
 
 template<typename T, typename I>
@@ -1089,9 +1096,9 @@ void localWgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            comm_profiler.start();
             r -= *A.getShare(0);
             r *= (T)-1;
+            comm_profiler.start();
             r.transmit(ROG<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
