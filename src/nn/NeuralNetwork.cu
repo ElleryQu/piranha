@@ -365,7 +365,7 @@ void NeuralNetwork<T, Share>::_adhoc_softmax_grad(Share<T> &labels, Share<T> &de
         );
     }
 
-    Share<uint8_t> expandedPrime(pools.size());
+    Share<T> expandedPrime(pools.size());
     maxpool(pools, maxVals, expandedPrime, paddedSize);
 
     //printShareFinite(maxVals, "max val", 1);
@@ -386,7 +386,7 @@ void NeuralNetwork<T, Share>::_adhoc_softmax_grad(Share<T> &labels, Share<T> &de
     //printShareFinite(diff, "diff + 2", 10);
 
     Share<T> zeros(deltas.size());
-    Share<uint8_t> b(deltas.size());
+    Share<T> b(deltas.size());
     ReLU(diff, zeros, b);
     zeros.zero();
     zeros += (T)(0.001 * (1 << FLOAT_PRECISION));

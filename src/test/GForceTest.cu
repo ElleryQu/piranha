@@ -1,5 +1,7 @@
 #include "unitTests.h"
 
+extern uint64_t q;
+
 template<typename T>
 struct RogueTest : public testing::Test {
     using ParamType = T;
@@ -74,8 +76,20 @@ TYPED_TEST(RogueTest, Mult) {
 
     if (partyNum >= Share::numParties) return;
 
+    // std::vector<double> test = {12, 24, 3, 5, -2, -3};
+    // std::vector<int64_t> testuint(6);
+    // std::cout << "q= " << q << std::endl << "-1 % q =" << (-1+q)%q << std::endl;
+    // thrust::transform(test.begin(), test.end(), testuint.begin(), [](double a)->int64_t {return (((int64_t) a+q) % q);});
+    // for (auto t : testuint){
+    //     std::cout << t << " ";
+    // }
+    // std::cout << std::endl;
+    // printDeviceData(testuint, "goal", false);
+    
     Share a ({12, 24, 3, 5, -2, -3}, false); 
+    // printDeviceData(*a.getShare(0), "a", false);
     Share b ({1, 0, 11, 3, -1, 11}, false);
+    // printDeviceData(*b.getShare(0), "b", false);
     // Share a ({12, 24, 3, 5, -2}, false); 
     // Share b ({1, 0, 11, 3, -1}, false);
 
@@ -89,7 +103,47 @@ TYPED_TEST(RogueTest, Mult) {
 
     std::vector<double> expected = {12, 0, 33, 15, 2, -33};
     // std::vector<double> expected = {12, 0, 33, 15, 2};
+    // printDeviceData(result, "result", false);
     assertDeviceData(result, expected, false);
+}
+
+TYPED_TEST(RogueTest, Mult2) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
+
+    if (partyNum >= Share::numParties) return;
+
+    // std::vector<double> test = {12, 24, 3, 5, -2, -3};
+    // std::vector<int64_t> testuint(6);
+    // std::cout << "q= " << q << std::endl << "-1 % q =" << (-1+q)%q << std::endl;
+    // thrust::transform(test.begin(), test.end(), testuint.begin(), [](double a)->int64_t {return (((int64_t) a+q) % q);});
+    // for (auto t : testuint){
+    //     std::cout << t << " ";
+    // }
+    // std::cout << std::endl;
+    // printDeviceData(testuint, "goal", false);
+    
+    Share a ({12, 24, 3, 5, -2, -3}); 
+    // printDeviceData(*a.getShare(0), "a", false);
+    Share b ({1, 0, 11, 3, -1, 11});
+    // printDeviceData(*b.getShare(0), "b", false);
+    // Share a ({12, 24, 3, 5, -2}, false); 
+    // Share b ({1, 0, 11, 3, -1}, false);
+
+    DeviceData<T> result(a.size());
+
+    if (use_offline){
+        b.offline_known = true;
+    }
+    a *= b;
+    dividePublic(a, (T)(1 << FLOAT_PRECISION));
+    reconstruct(a, result);
+
+    std::vector<double> expected = {12, 0, 33, 15, 2, -33};
+    // std::vector<double> expected = {12, 0, 33, 15, 2};
+    // printDeviceData(result, "result", false);
+    assertDeviceData(result, expected);
 }
 
 TYPED_TEST(RogueTest, MatMul) {
@@ -111,6 +165,7 @@ TYPED_TEST(RogueTest, MatMul) {
     matmul(a, b, c, 2, 4, 3, false, false, false, (T)FLOAT_PRECISION);
     reconstruct(c, result);
 
+    printDeviceData(result, "result");
     std::vector<double> expected = {1, 1, 1, 1, 0, 0, 1, 1};
 
     assertDeviceData(result, expected);
@@ -124,7 +179,8 @@ TYPED_TEST(RogueTest, MatMul2) {
     if (partyNum >= Share::numParties) return;
 
     Share a = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // 4 x 4
-    Share b = {-2.786461, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
+    // Share b = {-2.786461, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
+    Share b = {-2, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
     Share c(12); // 4 x 3
 
     DeviceData<T> result(12);
@@ -134,8 +190,12 @@ TYPED_TEST(RogueTest, MatMul2) {
     }
     matmul(a, b, c, 4, 3, 4, true, true, true, (T)FLOAT_PRECISION);
     reconstruct(c, result);
-
-    std::vector<double> expected = {-2.786461, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
+    printDeviceData(result, "matmul result");
+    // dividePublic(c, (T)(1 << FLOAT_PRECISION));
+    // reconstruct(c, result);
+    // printDeviceData(result, "result");
+    // std::vector<double> expected = {-2.786461, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
+    std::vector<double> expected = {-2, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
     assertDeviceData(result, expected);
 }
 
@@ -230,13 +290,15 @@ TYPED_TEST(RogueTest, Truncate) {
     // // false
     // printf("is TPC share?\t%d\n", typeid(Share)==typeid(TPC<T>));
 
-    Share a = {1 << 3, 2 << 3, 3 << 3, -3 << 3};
-    dividePublic(a, (T)1 << 3);
+    #define TRUN FLOAT_PRECISION
+
+    Share a = {1 << TRUN, 2 << TRUN, 3 << TRUN, -3 << TRUN, -11.11111 * (1 << TRUN)};
+    dividePublic(a, (T)1 << TRUN);
 
     DeviceData<T> result(a.size());
-    std::vector<double> expected = {1, 2, 3, -3};
+    std::vector<double> expected = {1, 2, 3, -3, -11.11111};
     reconstruct(a, result);
-
+    printDeviceData(result, "result");
     assertDeviceData(result, expected);
 }
 

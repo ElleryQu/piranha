@@ -12,12 +12,21 @@
 #include "../gpu/DeviceData.h"
 #include "../globals.h"
 
+static int p = 257;
+// // 23 bit.
+// static int q = 7340033;
+// 60 bit.
+
+#define HIGH_Q 1
+// 31 bits.
+static uint64_t q = 2138816513;
+
 template <typename T, typename I>
 class GFOBase {
 
     protected:
         
-        GFOBase(DeviceData<T, I> *a, bool offline_known=false);
+        GFOBase(DeviceData<T, I> *a, bool offline_known=false, T prime_=q);
 
     public:
 
@@ -36,6 +45,7 @@ class GFOBase {
         typedef T share_type;
         typedef I iterator_type;
         bool offline_known;
+        T prime;
 
         static const std::string& getProt();
 
@@ -80,7 +90,7 @@ class GFO : public GFOBase<T, I> {
 
     public:
 
-        GFO(DeviceData<T, I> *a);
+        GFO(DeviceData<T, I> *a, T prime_=q);
 };
 
 template<typename T>
@@ -88,9 +98,9 @@ class GFO<T, BufferIterator<T> > : public GFOBase<T, BufferIterator<T> > {
 
     public:
 
-        GFO(DeviceData<T> *a);
-        GFO(size_t n);
-        GFO(std::initializer_list<double> il, bool convertToFixedPoint = true);
+        GFO(DeviceData<T> *a, T prime_=q);
+        GFO(size_t n, T prime_=q);
+        GFO(std::initializer_list<double> il, bool convertToFixedPoint = true, T prime_=q);
 
         void resize(size_t n);
 
@@ -107,14 +117,14 @@ void dividePublic(GFO<T, I> &a, T denominator);
 template<typename T, typename I, typename I2>
 void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators);
 
-template<typename T, typename U, typename I, typename I2>
-void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<U, I2> &result);
+template<typename T, typename U=uint8_t, typename I, typename I2>
+void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<T, I2> &result);
 
-template<typename T, typename U, typename I, typename I2, typename I3>
-void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, I3> &result);
+template<typename T, typename U=uint8_t, typename I, typename I2, typename I3>
+void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, I3> &result);
 
-template<typename T, typename U, typename I, typename I2>
-void privateCompare(GFO<T, I> &input, GFO<U, I2> &result);
+template<typename T, typename U=uint8_t, typename I, typename I2>
+void privateCompare(GFO<T, I> &input, GFO<T, I2> &result);
 
 template<typename T, typename I, typename I2>
 void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out);
@@ -143,21 +153,14 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         int Din, int Dout, int stride, int padding, int truncation);
 
 // TODO change into 2 arguments with subtraction, pointer NULL indicates compare w/ 0
-template<typename T, typename U, typename I, typename I2>
-void dReLU(const GFO<T, I> &input, GFO<U, I2> &result);
+template<typename T, typename U=uint8_t, typename I, typename I2>
+void dReLU(const GFO<T, I> &input, GFO<T, I2> &result);
  
-template<typename T, typename U, typename I, typename I2, typename I3>
-void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult);
+template<typename T, typename U=uint8_t, typename I, typename I2, typename I3>
+void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult);
 
-template<typename T, typename U, typename I, typename I2, typename I3>
-void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k);
-
-static int p = 257;
-// // 23 bit.
-// static int q = 7340033;
-// 60 bit.
-#define HIGH_Q
-static uint64_t q = 2138816513;
+template<typename T, typename U=uint8_t, typename I, typename I2, typename I3>
+void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult, int k);
 
 #include "GForce.inl"
 

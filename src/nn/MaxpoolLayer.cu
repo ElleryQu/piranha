@@ -105,7 +105,7 @@ void MaxpoolLayer<T, Share>::forward(const Share<T> &input) {
 
     //printRSSMatrix(pools, "pool expanded", 1, expandedPoolSize, false);
 
-    Share<uint8_t> expandedMaxPrime(pools.size());
+    Share<T> expandedMaxPrime(pools.size());
     maxpool(pools, activations, expandedMaxPrime, expandedPoolSize);
 
     //printRSSMatrix(activations, "activations", 1, 1, false);

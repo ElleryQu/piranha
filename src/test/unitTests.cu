@@ -5,7 +5,9 @@ std::string profiling_path;
 std::ofstream pf;
 
 int runTests(int argc, char **argv) {
-    profiling_path = "output/profiling/RogueProfiling.tsv";
+    stringstream os;
+    os << "output/profiling/RogueProfiling_party" << partyNum << ".tsv";
+    profiling_path = os.str();
     pf = std::ofstream(profiling_path);
     writeProfile(
         pf, "protocol", "function",

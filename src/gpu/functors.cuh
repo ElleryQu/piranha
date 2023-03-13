@@ -47,14 +47,13 @@ struct scalar_divide_functor {
 template<typename T>
 struct scalar_mod_functor {
 
-    typedef typename std::make_signed<T>::type S;
     const T a;
 
     scalar_mod_functor(T _a) : a(_a) {}
     __host__ __device__ T operator()(const T &x) const {
         // assert(a>=0)
         return static_cast<T>(
-            static_cast<S>(x) % (a)
+            (x+a) % (a)
         );
     }
 };
@@ -142,7 +141,7 @@ struct is_not_a_functor {
     }
 };
 
-/// @brief  equal to 0. return 1{x!=a}.
+/// @brief if x > (q-1)/2, return x-q; else, return x.
 template<typename T>
 struct field_restruct_functor {    
 

@@ -18,7 +18,7 @@ class MaxpoolLayer : public Layer<T, Share> {
         Share<T> deltas;
 
     public:
-        Share<uint8_t> maxPrime;
+        Share<T> maxPrime;
         //Constructor and initializer
         MaxpoolLayer(MaxpoolConfig* conf, int _layerNum, int seed);
 

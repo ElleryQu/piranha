@@ -7,7 +7,7 @@ extern std::default_random_engine generator;
 
 #define TEST_USLEEP_TIME 0
 #define OFFLINE_KNOWN true
-#define EXP_TIMES 100
+#define EXP_TIMES 1
 
 template<typename T>
 struct EvalTest: public testing::Test {

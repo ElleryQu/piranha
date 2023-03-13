@@ -84,8 +84,8 @@ void convex_comb(GFO<T, I> &a, GFO<T, I> &c, DeviceData<U, I2> &b);
 // GFO class implementation 
 
 template<typename T, typename I>
-GFOBase<T, I>::GFOBase(DeviceData<T, I> *a, bool offline_known) : 
-                shareA(a), offline_known(offline_known) {}
+GFOBase<T, I>::GFOBase(DeviceData<T, I> *a, bool offline_known, T prime_) : 
+                shareA(a), offline_known(offline_known), prime(prime_) {}
 
 template<typename T, typename I>
 void GFOBase<T, I>::set(DeviceData<T, I> *a) {
@@ -113,11 +113,11 @@ void GFOBase<T, I>::fill(T val) {
 /// @param v 
 template<typename T, typename I>
 void GFOBase<T, I>::setPublic(std::vector<double> &v) {
-    typedef typename std::make_signed<T>::type S;
+    // typedef typename std::make_signed<T>::type S;
     std::vector<T> shifted_vals;
     for (double f : v) {
         shifted_vals.push_back(
-            (T)((S) (f * (1 << FLOAT_PRECISION)) % q)
+            (static_cast<T>((f * (1 << FLOAT_PRECISION))) + prime) % prime
         );
     }
 
@@ -161,6 +161,7 @@ template<typename T, typename I>
 GFOBase<T, I> &GFOBase<T, I>::operator+=(const T rhs) {
     if (partyNum == SERVER) {
         *shareA += rhs;
+        *shareA %= prime;
     }
     return *this;
 }
@@ -169,13 +170,16 @@ template<typename T, typename I>
 GFOBase<T, I> &GFOBase<T, I>::operator-=(const T rhs) {
     if (partyNum == SERVER) {
         *shareA -= rhs;
+        *shareA %= prime;
     }
     return *this;
 }
 
+// for any multiple rhs < 0, please use x *= -1; x*= -rhs. Do not use x *= rhs.
 template<typename T, typename I>
 GFOBase<T, I> &GFOBase<T, I>::operator*=(const T rhs) {
     *shareA *= rhs;
+    *shareA %= prime;
     return *this;
 }
 
@@ -196,6 +200,7 @@ template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator+=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA += rhs;
+        *shareA %= prime;
     }
     return *this;
 }
@@ -205,6 +210,7 @@ template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator-=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {
         *shareA -= rhs;
+        *shareA %= prime;
     }
     return *this;
 }
@@ -213,6 +219,7 @@ template<typename T, typename I>
 template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator*=(const DeviceData<T, I2> &rhs) {
     *shareA *= rhs;
+    *shareA %= prime;
     return *this;
 }
 
@@ -250,6 +257,7 @@ template<typename T, typename I>
 template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator+=(const GFOBase<T, I2> &rhs) {
     *shareA += *rhs.getShare(0);
+    *shareA %= prime;
     return *this;
 }
 
@@ -257,6 +265,7 @@ template<typename T, typename I>
 template<typename I2>
 GFOBase<T, I> &GFOBase<T, I>::operator-=(const GFOBase<T, I2> &rhs) {
     *shareA -= *rhs.getShare(0);
+    *shareA %= prime;
     return *this;
 }
 
@@ -292,7 +301,7 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         temp -= *x.getShare(0);
         temp *= f;
         *this += temp;
-        *this->getShare(0) %= q;
+        *this->getShare(0) %= prime;
     } 
     else 
     {
@@ -309,12 +318,14 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         r.fill(0);
         if (partyNum == CLIENT) {
             *this->getShare(0) -= r;
+            *this->getShare(0) %= prime;
             comm_profiler.start();
             this->getShare(0)->transmit(GFO<T>::otherParty(partyNum));
             this->getShare(0)->join();
             comm_profiler.accumulate("comm-time");
             this->getShare(0)->zero();
             *this->getShare(0) += offline_output;
+            *this->getShare(0) %= prime;
         }
         else if (partyNum == SERVER) {
             comm_profiler.start();
@@ -324,6 +335,7 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
             *this->getShare(0) += r;
             *this->getShare(0) *= *rhs.getShare(0);
             *this->getShare(0) += offline_output;
+            *this->getShare(0) %= prime;
         }
 
         func_profiler.add_comm_round();
@@ -388,31 +400,31 @@ int GFOBase<T, I>::numShares() {
 }
 
 template<typename T, typename I>
-GFO<T, I>::GFO(DeviceData<T, I> *a) : GFOBase<T, I>(a) {}
+GFO<T, I>::GFO(DeviceData<T, I> *a, T prime_) : GFOBase<T, I>(a, prime_) {}
 
 template<typename T>
-GFO<T, BufferIterator<T> >::GFO(DeviceData<T> *a) :
-    GFOBase<T, BufferIterator<T> >(a) {}
+GFO<T, BufferIterator<T> >::GFO(DeviceData<T> *a, T prime_) :
+    GFOBase<T, BufferIterator<T> >(a, prime_) {}
 
 template<typename T>
-GFO<T, BufferIterator<T> >::GFO(size_t n) :
+GFO<T, BufferIterator<T> >::GFO(size_t n, T prime_) :
     _shareA(n),
-    GFOBase<T, BufferIterator<T> >(&_shareA) {}
+    GFOBase<T, BufferIterator<T> >(&_shareA, prime_) {}
 
 template<typename T>
-GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertToFixedPoint) :
+GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertToFixedPoint, T prime_) :
     _shareA(il.size()),
-    GFOBase<T, BufferIterator<T> >(&_shareA) {
+    GFOBase<T, BufferIterator<T> >(&_shareA, prime_) {
 
     typedef typename std::make_signed<T>::type S;
     std::vector<T> shifted_vals;
     for (double f : il) {
         if (convertToFixedPoint) {
             shifted_vals.push_back(
-                (T) (((S)(f * (1 << FLOAT_PRECISION))) % q)
+                (static_cast<T>(f * (1 << FLOAT_PRECISION)) + this->prime) % this->prime
                 );
         } else {
-            shifted_vals.push_back(((T) f) % q);
+            shifted_vals.push_back(((static_cast<T>(f)) + this->prime) % this->prime);
         }
     }
 
@@ -433,11 +445,28 @@ void GFO<T, BufferIterator<T> >::resize(size_t n) {
 
 template<typename T, typename I>
 void dividePublic(GFO<T, I> &a, T denominator) {
+    int size = a.size();
 
     #ifdef HIGH_Q
+    // x/d = (r_x-m_x*q)/d. if x<0, then x/d = (r_x-q)/d.
+    // qdd = 1{x<0}*(q/d - q).
+    DeviceData<T> qdd(size);
+    qdd.zero();
+    // wrong.
+    qdd += *a.getShare(0);
+    qdd /= static_cast<T>((a.prime+1)/2);
+    qdd *= static_cast<T>(a.prime / denominator);
     *a.getShare(0) /= denominator;
+    // if (partyNum == GFO<uint32_t>::SERVER) 
+    // {
+        *a.getShare(0) -= qdd;
+    // }
+    a += a.prime;
+
+    // *a.getShare(0) /= denominator;
     #else
     // TODO: implement GForce native solution.
+    
     #endif
 }
 
@@ -446,31 +475,48 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
 
     assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
 
+    int size = a.size();
+
     #ifdef HIGH_Q
+    DeviceData<T> xsign(size);
+    DeviceData<T> qdd(size);
+    xsign.zero();
+    qdd.fill(a.prime);
+    // wrong.
+    xsign += *a.getShare(0);
+    xsign /= (a.prime-1)/2 + 1;
+    qdd /= denominators;
+    qdd -= a.prime;
+    qdd *= xsign;
     *a.getShare(0) /= denominators;
+    // if (partyNum == GFO<uint32_t>::SERVER) 
+    // {
+        *a.getShare(0) -= qdd;
+    // }
     #else
     // TODO: implement GForce native solution.
     #endif
 }
 
 template<typename T, typename U, typename I, typename I2>
-void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<U, I2> &result) {
+void dividePublic_no_off1(GFO<T, I> &a, T denominator, GFO<T, I2> &result) {
 
     size_t size = a.size();
 
     DeviceData<T> d(size);
     d.fill(denominator);
-    dividePublic_no_off1(a, d, result);
+    dividePublic_no_off1<T, U, I, I2>(a, d, result);
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
-void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, I3> &result) {
+void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, I3> &result) {
 
     assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
 
     // TODO: int8 or int4 support.
     size_t size = a.size();
     result.zero();
+    auto prime = a.prime;
 
     // step 1:  SERVER samples r and send xs + r to CLIENT.
     //          CLIENT computes z = x + r.
@@ -481,7 +527,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
         r.fill(0);
         
         *a.getShare(0) += r;
-        a %= q;
+        a %= prime;
         comm_profiler.start();
         a.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
         a.getShare(0)->join();
@@ -496,7 +542,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
         comm_profiler.accumulate("comm-time");
         // compute z.
         r += *a.getShare(0);
-        r %= q;
+        r %= prime;
     }
 
     // step 2:  SERVER and CLIENT run a millionaire's protocol.
@@ -508,42 +554,46 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
 
     // step 3: compute <1{rmodd <= zmodd}>_2
     GFO<T> rmodd_(&rmodd);
-    GFO<U> compare_result(size);
+    GFO<T> compare_result(size);
     compare_result.zero();
-    privateCompare(rmodd_, compare_result);
+    privateCompare<T, U, I, BufferIterator<T>>(rmodd_, compare_result);
 
     // Step 4: the final step.
     r /= denominators;
-    DeviceData<U> ur(size);
+    DeviceData<T> ur(size);
     thrust::copy(r.begin(), r.end(), ur.begin());
-    DeviceData<U> temp(size);
+    DeviceData<T> temp(size);
     temp.fill(0);
     temp += *compare_result.getShare(0);
     if (partyNum == GFO<uint32_t>::SERVER) {
-        ur *= (T)-1;
+        ur *= static_cast<T>(-1);
+        ur += prime;
 
         // bit2A.
         // placeholder for client's input.
-        GFO<U> another_input(size); 
+        GFO<T> another_input(size); 
         another_input.fill(0);
         compare_result.offline_known = true;
         another_input *= compare_result;
-        another_input *= (T)-2;
+        another_input *= static_cast<T>(-1);
+        another_input *= static_cast<T>(2);
         another_input += temp;
         result += another_input;
     }
     if (partyNum == GFO<uint32_t>::CLIENT) {
         // bit2A.
         // placeholder for server's input.
-        GFO<U> another_input(size); 
+        GFO<T> another_input(size); 
         another_input.fill(0);
         another_input.offline_known = true;
         compare_result *= another_input;
-        compare_result *= (T)-2;
+        compare_result *= static_cast<T>(-1);
+        compare_result *= static_cast<T>(2);
         compare_result += temp;
         result += compare_result;
     }
     *result.getShare(0) += ur;
+    result %= prime;
 
     func_profiler.add_comm_round();
 }
@@ -554,7 +604,7 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<U, 
 /// @tparam I DeviceData iterator.
 /// @param a The input of SERVER or CLIENT.
 template<typename T, typename U, typename I, typename I2>
-void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
+void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
     // TODO: int8 or int4 support.  uint8 √
     // notice: uint8 is enough to hold prexor.
     size_t T_bits_count = sizeof(T) * 8;
@@ -565,7 +615,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
     DeviceData<U> b(size*(T_bits_count));
     DeviceData<U> delta(size);
     b.fill(0), delta.fill(0);
-    using SRIterator = typename StridedRange<I2>::iterator;
+    using SRIterator = typename StridedRange<BufferIterator<U>>::iterator;
 
     // MILL step 1: bit expand. because r is known to SERVER, so the bit expand of r is trival.
     // TODO: int8 support.
@@ -577,7 +627,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         // test passed. run test passed.
         DeviceData<U> alpha(size * T_bits_count);
         gpu::vectorExpand(&delta, &alpha, T_bits_count);
-        alpha *= (T)-2;
+        alpha *= (U)-2;
         alpha += 1;
         alpha %= p;
 
@@ -589,21 +639,22 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
         // MILL step 3: SERVER and CLIENT evaluate bi together.
         stride = T_bits_count;
-        GFO<U> bi_xor(size*T_bits_count);
+        GFO<U> bi_xor(size*T_bits_count, p);
         bi_xor.fill(0);
         *bi_xor.getShare(0) += b;
         bi_xor.offline_known = true;
-        GFO<U> another_input(size*T_bits_count);
+        GFO<U> another_input(size*T_bits_count, p);
         another_input.fill(0);
         another_input *= bi_xor;
-        another_input *= (T)-2;
-        another_input %= p;
+        another_input *= static_cast<T>(-1);
+        another_input *= static_cast<T>(2);
+        // another_input %= p;
         another_input += b;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
-        prefix_xor %= p;
+        // prefix_xor %= p;
         // note the output of bitexpand is small endian.
-        thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
+        thrust::reverse_iterator<BufferIterator<U>> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
         DeviceData<U> key(size);
         thrust::copy(key_count_iter, key_count_iter + key.size(), key.begin());
@@ -621,7 +672,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         bn1.zero();
         bn1 += delta;
         bn1 *= 3;
-        StridedRange<I2> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
+        StridedRange<BufferIterator<U>> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
         DeviceData<U, SRIterator> reduce_xor(bn1_range.begin(), bn1_range.end());
         bn1 += reduce_xor;
         b *= rbi;
@@ -639,8 +690,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
         // // MILL step 6: pass.
         // // PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASS.
-        result.zero();
-        *result.getShare(0) += delta;
+        thrust::copy(delta.begin(), delta.end(), result.getShare(0)->begin());
     }
     else if (partyNum == GFO<uint32_t>::CLIENT) {
 
@@ -650,28 +700,29 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
         // MILL step 3: SERVER and CLIENT evaluate bi together.
         stride = T_bits_count;
-        GFO<U> bi_xor(size*T_bits_count);
+        GFO<U> bi_xor(size*T_bits_count, p);
         bi_xor.fill(0);
         *bi_xor.getShare(0) += b;
-        GFO<U> another_input(size*T_bits_count);
+        GFO<U> another_input(size*T_bits_count, p);
         another_input.fill(0);
         another_input.offline_known = true;
         bi_xor *= another_input;
-        bi_xor *= (T)-2;
+        bi_xor *= static_cast<T>(-1);
+        bi_xor *= static_cast<T>(2);
         bi_xor += b;
-        bi_xor %= p;
+        // bi_xor %= p;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
-        prefix_xor %= p;
+        // prefix_xor %= p;
         // note the output of bitexpand is small endian.
-        thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
+        thrust::reverse_iterator<BufferIterator<U>> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
         DeviceData<U> key(size);
         thrust::copy(key_count_iter, key_count_iter + key.size(), key.begin());
         DeviceData<U> key_expand(size * T_bits_count);
         gpu::vectorExpand(&key, &key_expand, T_bits_count);
         thrust::inclusive_scan_by_key(key_expand.begin(), key_expand.end(), reverse_prefix_xor_iter, reverse_prefix_xor_iter);
-        b *= (T)-1;
+        b *= static_cast<U>(-1);
         b += *prefix_xor.getShare(0);
         b %= p;
 
@@ -680,7 +731,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         DeviceData<U> bn1(size);
         bn1.zero();
         bn1 *= 3;
-        StridedRange<I2> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
+        StridedRange<BufferIterator<U>> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
         DeviceData<U, SRIterator> reduce_xor(bn1_range.begin(), bn1_range.end());
         bn1 += reduce_xor;
         bn1 %= p;
@@ -708,19 +759,18 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         stride = 2;
         while (stride < T_bits_count) {
             offset = (size_t) (stride / 2);
-            StridedRange<I2> b_even_range(b.begin(), b.end(), stride);
-            StridedRange<I2> b_odd_range(b.begin()  + offset, b.end(), stride);
+            StridedRange<BufferIterator<U>> b_even_range(b.begin(), b.end(), stride);
+            StridedRange<BufferIterator<U>> b_odd_range(b.begin()  + offset, b.end(), stride);
             DeviceData<U, SRIterator> b_even(b_even_range.begin(), b_even_range.end());
             DeviceData<U, SRIterator> b_odd(b_odd_range.begin(), b_odd_range.end());
             b_even *= b_odd;
             b_even %= p;
             stride *= 2;
         }
-        StridedRange<I2> b_range(b.begin(), b.end(), stride);
+        StridedRange<BufferIterator<U>> b_range(b.begin(), b.end(), stride);
         DeviceData<U, SRIterator> b_(b_range.begin(), b_range.end());
         bn1 *= b_;
-        result.zero();
-        *result.getShare(0) += bn1;
+        thrust::copy(bn1.begin(), bn1.end(), result.getShare(0)->begin());
     }
     func_profiler.add_comm_round();
 }
@@ -762,7 +812,6 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
 
     // truncate
     dividePublic(c, (T)1 << truncation);
-    c %= q;
 }
 
 /**
@@ -801,8 +850,8 @@ void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
 /**
  * return b*(y-x) + x. if b=0, return x; else return y. b is a arithmatic sharing.
 */
-template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, GFO<T, I4> &z) {
+template<typename T, typename I, typename I2, typename I3, typename I4>
+void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<T, I3> &b, GFO<T, I4> &z) {
 
     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "GFO selectShare input size mismatch");
 
@@ -812,10 +861,10 @@ void selectShare(const GFO<T, I> &x, const GFO<T, I2> &y, const GFO<U, I3> &b, G
     z.zero();
     z += y;
     z -= x;
-    thrust::copy(b.getShare(0)->begin(), 
-        b.getShare(0)->end(),
-        b_T.getShare(0)->begin());
-    z *= b_T;
+    // thrust::copy(b.getShare(0)->begin(), 
+    //     b.getShare(0)->end(),
+    //     b_T.getShare(0)->begin());
+    z *= b;
     z += x;
 }
 
@@ -886,6 +935,7 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         int stride, int dilation) {
 
     GFO<T> x(A.size()), y(B.size()), z(C.size());
+    auto prime = A.prime;
     if (!B.offline_known)
     {
         PrecomputeObject.getConvBeaverTriple_fprop<T, GFO<T> >(x, y, z, 
@@ -941,12 +991,14 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
             r -= *A.getShare(0);
-            r *= (T)-1;
+            r *= static_cast<T>(-1);
+            r %= prime;
             comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *C.getShare(0) += offline_output;
+            C %= prime;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
             comm_profiler.start();
@@ -962,6 +1014,7 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
                 paddingHeight, paddingWidth,
                 stride, dilation);
             *C.getShare(0) += offline_output;
+            C %= prime;
         }
         cudaThreadSynchronize();
 
@@ -1032,7 +1085,7 @@ void localDgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
             r -= *A.getShare(0);
-            r *= (T)-1;
+            r *= static_cast<T>(-1);
             comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
@@ -1124,7 +1177,7 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         if (partyNum == GFO<uint32_t>::CLIENT) {
             comm_profiler.start();
             r -= *A.getShare(0);
-            r *= (T)-1;
+            r *= static_cast<T>(-1);
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
@@ -1168,13 +1221,13 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
                     batchSize, imageHeight, imageWidth, Din,
                     Dout, filterSize, filterSize,
                     padding, padding,
-                    stride, (T)1);
+                    stride, static_cast<T>(1));
             break;
         case cutlass::conv::Operator::kDgrad:
             localDgrad(A, B, C,
                     batchSize, outputHeight, outputWidth, Dout,
                     filterSize, filterSize, Din,
-                    padding, padding, stride, (T)1,
+                    padding, padding, stride, static_cast<T>(1),
                     imageHeight, imageWidth);
             break;
         case cutlass::conv::Operator::kWgrad:
@@ -1182,12 +1235,12 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
                     batchSize, outputHeight, outputWidth, Dout,
                     imageHeight, imageWidth, Din,
                     filterSize, filterSize,
-                    padding, padding, stride, (T)1);
+                    padding, padding, stride, (static_cast<T>(1)));
             break;
     }
 
     // *C.getShare(0) += localResult;
-    dividePublic(C, (T)1 << truncation);
+    dividePublic(C, static_cast<T>(1 << truncation));
     C %= q;
 }
 
@@ -1200,7 +1253,7 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
 /// @param input    <x>.
 /// @param result   <1{x>=0}>_b.
 template<typename T, typename U, typename I, typename I2>
-void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
+void dReLU(const GFO<T, I> &input, GFO<T, I2> &result) {
 
     size_t size = input.size();
 
@@ -1210,16 +1263,16 @@ void dReLU(const GFO<T, I> &input, GFO<U, I2> &result) {
     input_.zero();
     input_ += input;
     input_ += bound;
-    dividePublic_no_off1(input_, bound, result);
+    dividePublic_no_off1<T, U, I, I2>(input_, bound, result);
 }
     
 template<typename T, typename U, typename I, typename I2, typename I3>
-void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
+void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult) {
 
     //TO_BE_DONE
 
     func_profiler.start();
-    dReLU(input, dresult);
+    dReLU<T, U, I, I3>(input, dresult);
     func_profiler.accumulate("relu-drelu");
 
     func_profiler.start();
@@ -1232,7 +1285,7 @@ void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult) {
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
-void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
+void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult, int k) {
 
     //TO_BE_DONE
 
@@ -1275,22 +1328,16 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
         // DRELU diff -> b
         func_profiler.start();
-        GFO<U> b(even.size());
+        GFO<T> b(even.size());
         dReLU(diff, b);
         func_profiler.accumulate("maxpool-drelu");
 
         //printf("func-maxpool-post-drelu-k=%d\n", k);
         //printMemUsage();
-     
-        // TODO: remove copy.
-        GFO<T> b_T(b.size());
-        thrust::copy(b.getShare(0)->begin(), 
-            b.getShare(0)->end(),
-            b_T.getShare(0)->begin());
             
         // selectShare(odd, even, b, even);
         even -= odd;
-        even *= b_T;
+        even *= b;
         even += odd;
 
         // unzip even -> into even, odd
@@ -1316,10 +1363,10 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
         // expandCompare b -> expandedB
         func_profiler.start();
-        GFO<U> negated(b.size());
+        GFO<T> negated(b.size());
         negated.fill(1);
         negated -= b;
-        GFO<U> expandedB(input.size());
+        GFO<T> expandedB(input.size());
 
         gpu::expandCompare(*b.getShare(0), *negated.getShare(0), *expandedB.getShare(0));
 
@@ -1351,20 +1398,15 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
     // DRELU diff -> b
     func_profiler.start();
-    GFO<U> b(even.size());
+    GFO<T> b(even.size());
     dReLU(diff, b);
     func_profiler.accumulate("maxpool-z-drelu");
  
     func_profiler.start();
-    // TODO: remove copy.
-    GFO<T> b_T(b.size());
-    thrust::copy(b.getShare(0)->begin(), 
-        b.getShare(0)->end(),
-        b_T.getShare(0)->begin());
         
     // selectShare(odd, even, b, even);
     even -= odd;
-    even *= b_T;
+    even *= b;
     even += odd;
     func_profiler.accumulate("maxpool-selectShare");
 
@@ -1381,10 +1423,10 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<U, I3> &dresult, int k) {
 
     // expandCompare b -> expandedB
     func_profiler.start();
-    GFO<U> negated(b.size());
+    GFO<T> negated(b.size());
     negated.fill(1);
     negated -= b;
-    GFO<U> expandedB(input.size());
+    GFO<T> expandedB(input.size());
     gpu::expandCompare(*b.getShare(0), *negated.getShare(0), *expandedB.getShare(0));
     func_profiler.accumulate("maxpool-z-expandCompare");
  
@@ -1400,6 +1442,7 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
         bool transpose_a, bool transpose_b, bool transpose_c) {
     
     GFO<T> x(a.size()), y(b.size()), z(c.size());
+    auto prime = x.prime;
 
     int a_rows = transpose_a ? K : M; int a_cols = transpose_a ? M : K;
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
@@ -1442,12 +1485,14 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
             r -= *a.getShare(0);
-            r *= (T)-1;
+            r *= static_cast<T>(-1);
+            r %= prime;
             comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
             *c.getShare(0) += offline_output;
+            *c.getShare(0) %= prime;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
             comm_profiler.start();
@@ -1459,6 +1504,7 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
             b_copy += *b.getShare(0);
             gpu::gemm(M, N, K, &r, transpose_a, &b_copy, transpose_b, c.getShare(0), transpose_c);
             *c.getShare(0) += offline_output;
+            *c.getShare(0) %= prime;
         }
 
         func_profiler.add_comm_round();
@@ -1548,14 +1594,14 @@ void getPowers(GFO<T, I> &in, DeviceData<T, I2> &pow) {
     GFO<T> powers(pow.size()); // accumulates largest power yet tested that is less than the input val
     GFO<T> currentPowerBit(in.size()); // current power
     GFO<T> diff(in.size());
-    GFO<uint8_t> comparisons(in.size());
+    GFO<T> comparisons(in.size());
 
     for (int bit = 0; bit < sizeof(T) * 8; bit++) {
         currentPowerBit.fill(bit);
 
         diff.zero();
         diff += in;
-        diff -= (((T)1) << bit);
+        diff -= ((static_cast<T>(1)) << bit);
 
         comparisons.zero();
         dReLU(diff, comparisons); // 0 -> current power is larger than input val, 1 -> input val is larger than current power

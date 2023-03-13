@@ -17,12 +17,17 @@
 
 // MPC globals
 #ifndef FLOAT_PRECISION
-#define FLOAT_PRECISION 20
+#define FLOAT_PRECISION 12
 #endif
-
 #define GFORCE_BOUND (uint64_t) 1 << 40
 #define ROGUE_BOUND (uint64_t) 1 << 40
 
+// NN globals
+#ifndef RELU_BIT_TYPE
+#define RELU_BIT_TYPE uint64_t
+#endif
+
+// the other settings
 #define PRELOAD_PATH "files/preload/"
 #define TEST_PATH "files/test/"
 
