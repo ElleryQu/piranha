@@ -445,17 +445,26 @@ TYPED_TEST(RogueTest, DRELU4) {
     if (partyNum >= Share::numParties) return;
 
     std::vector<double> input;
+    std::vector<double> input2;
 
     random_vector(input, 20);
-    Share a(20);
-    a.setPublic(input);
+    random_vector(input2, 20);
+    Share a(20), b(20);
+    a.setPublic(input), b.setPublic(input2);
+    a -= b;
 
     Share result(input.size());
     dReLU(a, result);
+    DeviceData<T> super_result(input.size());
+    reconstruct(result, super_result);
+    printDeviceData(super_result, "actual_drelu", false);
 
     std::vector<double> expected(20);
-    std::transform(input.begin(), input.end(), expected.begin(),
-        [](double x) {return x>=0;} );
+    std::transform(
+        input.begin(), input.end(), 
+        input2.begin(), 
+        expected.begin(),
+        [](double x, double y) {return (x-y)>=0;} );
 
     assertShare(result, expected, false);
 }
@@ -471,17 +480,20 @@ TYPED_TEST(RogueTest, DRELU_MAIN) {
 
     random_vector(input, 20);
     Share a(20);
+    a.fill(0);
     a.setPublic(input);
 
-    DeviceData<T> test_data(20);
-    test_data.fill(0);
-    test_data += *a.getShare(0);
-    test_data += GFORCE_BOUND;
+    // DeviceData<T> test_data(20);
+    // test_data.fill(0);
+    // test_data += *a.getShare(0);
+    // // test_data += GFORCE_BOUND;
     // printDeviceData(test_data, "plus_bound", false);
 
-    Share result(input.size());
-    dReLU(a, result);
-    // printDeviceData(*result.getShare(0), "actual", false);
+    Share result_s(input.size());
+    dReLU(a, result_s);
+    DeviceData<T> result(input.size());
+    reconstruct(result_s, result);
+    printDeviceData(result, "actual", false);
 
     std::vector<double> expected(20);
     std::transform(input.begin(), input.end(), expected.begin(),
@@ -489,8 +501,8 @@ TYPED_TEST(RogueTest, DRELU_MAIN) {
     DeviceData<T> expt(20);
     thrust::copy(expected.begin(), expected.end(), expt.begin());
 
-    // printDeviceData(expt, "expected", false);
-    assertShare(result, expected, false);
+    printDeviceData(expt, "expected", false);
+    assertDeviceData(result, expected, false);
 }
 
 
@@ -519,7 +531,7 @@ TYPED_TEST(RogueTest, RELU) {
 
     DeviceData<T> super_result(result.size());
     reconstruct(result, super_result);
-    //printDeviceData(super_result, "super_result_64");
+    printDeviceData(super_result, "super_result_64");
     assertDeviceData(super_result, expected);
 
     std::vector<double> dexpected = {
@@ -528,7 +540,7 @@ TYPED_TEST(RogueTest, RELU) {
     
     //Change to <uint8_t>
     reconstruct(dresult, super_result);
-    //printDeviceData(super_result, "super_result", false);
+    printDeviceData(super_result, "super_result", false);
     assertDeviceData(super_result, dexpected, false);
 }
 
@@ -554,7 +566,7 @@ TYPED_TEST(RogueTest, RELU2) {
 
     DeviceData<T> super_result(result.size());
     reconstruct(result, super_result);
-    //printDeviceData(super_result, "super_result_64");
+    printDeviceData(super_result, "super_result_64");
     assertDeviceData(super_result, expected);
 
     std::vector<double> dexpected = {
@@ -563,7 +575,7 @@ TYPED_TEST(RogueTest, RELU2) {
     
     //Change to <uint8_t>
     reconstruct(dresult, super_result);
-    //printDeviceData(super_result, "super_result", false);
+    printDeviceData(super_result, "super_result", false);
     assertDeviceData(super_result, dexpected, false);
 }
 
@@ -591,11 +603,12 @@ TYPED_TEST(RogueTest, Maxpool) {
     DeviceData<T> super_result(expected.size());
     DeviceData<T> d_super_result(dexpected.size());
     reconstruct(result, super_result);
+    printDeviceData(super_result, "super_result", true );
     assertDeviceData(super_result, expected);
 
     //Change to <uint8_t>
     reconstruct(dresult, d_super_result);
-    //printDeviceData(super_result, "super_result", false);
+    printDeviceData(d_super_result, "d_super_result", false);
     assertDeviceData(d_super_result, dexpected, false);
 }
 
@@ -643,10 +656,11 @@ TYPED_TEST(RogueTest, Maxpool2) {
     DeviceData<T> super_result(expected.size());
     DeviceData<T> d_super_result(dexpected.size());
     reconstruct(result, super_result);
+    printDeviceData(super_result, "super_result", true );
     assertDeviceData(super_result, expected);
 
     //Change to <uint8_t>
     reconstruct(dresult, d_super_result);
-    //printDeviceData(super_result, "super_result", false);
+    printDeviceData(d_super_result, "d_super_result", false);
     assertDeviceData(d_super_result, dexpected, false);
 }

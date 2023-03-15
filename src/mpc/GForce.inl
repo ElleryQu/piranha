@@ -294,14 +294,18 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         temp.zero();
         temp += f;
         temp -= *y.getShare(0);
+        temp %= prime;
         temp *= e;
+        temp %= prime;
         *this += temp;
 
         temp.zero();
         temp -= *x.getShare(0);
+        temp %= prime;
         temp *= f;
+        temp %= prime;
         *this += temp;
-        *this->getShare(0) %= prime;
+        *this %= prime;
     } 
     else 
     {
@@ -560,23 +564,26 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, 
 
     // Step 4: the final step.
     r /= denominators;
-    DeviceData<T> ur(size);
-    thrust::copy(r.begin(), r.end(), ur.begin());
-    DeviceData<T> temp(size);
-    temp.fill(0);
-    temp += *compare_result.getShare(0);
-    if (partyNum == GFO<uint32_t>::SERVER) {
-        ur *= static_cast<T>(-1);
-        ur += prime;
+    // DeviceData<T> ur(size);
+    // thrust::copy(r.begin(), r.end(), ur.begin());
+    if (partyNum == GFO<uint32_t>::SERVER) {   
+        r *= static_cast<T>(-1);
+        r %= prime;
+
+        DeviceData<T> temp(size);
+        temp.fill(0);
+        temp += *compare_result.getShare(0);
 
         // bit2A.
         // placeholder for client's input.
         GFO<T> another_input(size); 
         another_input.fill(0);
         compare_result.offline_known = true;
+        compare_result *= static_cast<T>(-2);
+        // *compare_result.getShare(0) += 1
+        compare_result += 1;
+
         another_input *= compare_result;
-        another_input *= static_cast<T>(-1);
-        another_input *= static_cast<T>(2);
         another_input += temp;
         result += another_input;
     }
@@ -587,12 +594,9 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, 
         another_input.fill(0);
         another_input.offline_known = true;
         compare_result *= another_input;
-        compare_result *= static_cast<T>(-1);
-        compare_result *= static_cast<T>(2);
-        compare_result += temp;
         result += compare_result;
     }
-    *result.getShare(0) += ur;
+    *result.getShare(0) += r;
     result %= prime;
 
     func_profiler.add_comm_round();
@@ -627,8 +631,8 @@ void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
         // test passed. run test passed.
         DeviceData<U> alpha(size * T_bits_count);
         gpu::vectorExpand(&delta, &alpha, T_bits_count);
-        alpha *= (U)-2;
-        alpha += 1;
+        alpha *= static_cast<U>(-2);
+        alpha += p+1;
         alpha %= p;
 
         // TODO: offline known random mask to bi.
@@ -646,8 +650,8 @@ void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
         GFO<U> another_input(size*T_bits_count, p);
         another_input.fill(0);
         another_input *= bi_xor;
-        another_input *= static_cast<T>(-1);
-        another_input *= static_cast<T>(2);
+        another_input *= static_cast<U>(-1);
+        another_input *= static_cast<U>(2);
         // another_input %= p;
         another_input += b;
         GFO<U> &prefix_xor = another_input;
@@ -707,9 +711,9 @@ void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
         another_input.fill(0);
         another_input.offline_known = true;
         bi_xor *= another_input;
-        bi_xor *= static_cast<T>(-1);
-        bi_xor *= static_cast<T>(2);
-        bi_xor += b;
+        bi_xor *= static_cast<U>(-2);
+        *bi_xor.getShare(0) += b;
+        bi_xor %= p;
         // bi_xor %= p;
         GFO<U> &prefix_xor = another_input;
         prefix_xor *= 3;
@@ -779,6 +783,8 @@ template<typename T, typename I, typename I2>
 void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
 
     comm_profiler.start();
+    auto prime = in.prime;
+
     // 1 - send shareA to next party
     in.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
 
@@ -794,11 +800,11 @@ void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
     out.zero();
     out += *in.getShare(0);
     out += rxShare;
-    out %= q;
+    out %= prime;
 
     thrust::transform(
         out.begin(), out.end(), out.begin(),
-        field_restruct_functor<T>(q));
+        field_restruct_functor<T>(prime));
 
     func_profiler.add_comm_round();
 }
@@ -1362,12 +1368,14 @@ void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult, int k) {
         //printMemUsage();
 
         // expandCompare b -> expandedB
+        // TODO: potential mistake(wrong). GForce's drelu output is arith sharing.
         func_profiler.start();
         GFO<T> negated(b.size());
         negated.fill(1);
         negated -= b;
         GFO<T> expandedB(input.size());
 
+        // expanded choose bit.
         gpu::expandCompare(*b.getShare(0), *negated.getShare(0), *expandedB.getShare(0));
 
         func_profiler.accumulate("maxpool-expandCompare");

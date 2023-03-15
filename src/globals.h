@@ -19,8 +19,8 @@
 #ifndef FLOAT_PRECISION
 #define FLOAT_PRECISION 12
 #endif
-#define GFORCE_BOUND (uint64_t) 1 << 40
-#define ROGUE_BOUND (uint64_t) 1 << 40
+#define GFORCE_BOUND (uint64_t) 1 << 20
+#define ROGUE_BOUND (uint64_t) 1 << 20
 
 // NN globals
 #ifndef RELU_BIT_TYPE

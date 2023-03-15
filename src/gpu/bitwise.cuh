@@ -66,10 +66,13 @@ __global__ void setCarryOutMSB(T *rbits, T *abits, T *msb, size_t n, int bitWidt
     }
 }
 
+
+// example: b B B B b B B B
 template<typename T>
 __global__ void expandCompare(T *b, T *invB, T *expanded,
         int bSize, int expandedSize, int expansionFactor) {
 
+    // expanded index
     int EXP_IDX = blockIdx.y*blockDim.y+threadIdx.y;
     int B_IDX = blockIdx.x*blockDim.x+threadIdx.x;
 
@@ -215,6 +218,7 @@ void setCarryOutMSB(DeviceData<T> &rbits, DeviceData<T> &abits, DeviceData<T> &m
     cudaThreadSynchronize();
 }
 
+// k-maxpool, input.size = expanded.size, drelu_bit.size = b.size.
 template<typename T>
 void expandCompare(DeviceData<T> &b, DeviceData<T> &inverseB, DeviceData<T> &expanded) {
 

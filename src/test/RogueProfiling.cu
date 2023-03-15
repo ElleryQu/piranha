@@ -173,10 +173,17 @@ TYPED_TEST(EvalTest, MatMul_Profiling_BENCHMARK) {
     std::vector<double> rnd_vals;
 
     std::vector<int> Np = {10, 100, 1000};
+    std::stringstream os;
+    os << "output/profiling/matmul_profiling_party" << partyNum << ".tsv";
+    std::string path = os.str();
+    std::ofstream mlpf = std::ofstream(path, ios::app);
+    
     for (int j = 0; j < Np.size(); j++){
         std::vector<int> N(EXP_TIMES + 1, Np[j]);
         N[0] = 1;
         Profiler profiler;
+        double curr_elap = 0;
+        mlpf << Share::getProt() << " " << Np[j] << "\t";
         for (int i = 0; i < N.size(); i++) {
 
             int n = N[i];
@@ -198,11 +205,16 @@ TYPED_TEST(EvalTest, MatMul_Profiling_BENCHMARK) {
 
             profiler.accumulate("matmul_bm");
 
+            mlpf << profiler.get_elapsed("matmul_bm") - curr_elap << "\t";
+            curr_elap = profiler.get_elapsed("matmul_bm");
+
             if (i == 0) { // sacrifice run to spin up GPU
                 profiler.clear();
                 continue;
             }
         }
+        mlpf << std::endl;
+
         printf("matmul_bm (N=%d) - %f sec.\n", Np[j], profiler.get_elapsed("matmul_bm") / 1000.0 / EXP_TIMES);
         writeProfile(
             pf, Share::getProt(), "matmul_bm", 1, Np[j], 

@@ -500,19 +500,34 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
     r /= denominators;
     DeviceData<U> ur(size);
     thrust::copy(r.begin(), r.end(), ur.begin());
-    DeviceData<U> temp(size);
-    temp.fill(0);
-    temp += *compare_result.getShare(0);
+    // DeviceData<U> temp(size);
+    // temp.fill(0);
+    // temp += *compare_result.getShare(0);
     if (partyNum == ROG<uint32_t>::SERVER) {
-        ur *= (T)-1;
+        ur *= static_cast<T>(-1);
 
-        // bit2A.
-        // placeholder for client's input.
+        // // bit2A.
+        // // placeholder for client's input.
+        // ROG<U> another_input(size); 
+        // another_input.fill(0);
+        // compare_result.offline_known = true;
+        // another_input *= compare_result;
+        // another_input *= static_cast<U>(-2);
+        // another_input += temp;
+        // result += another_input;
+
+        DeviceData<U> temp(size);
+        temp.fill(0);
+        temp += *compare_result.getShare(0);
+
         ROG<U> another_input(size); 
         another_input.fill(0);
         compare_result.offline_known = true;
+        compare_result *= static_cast<U>(-2);
+        // *compare_result.getShare(0) += 1
+        compare_result += 1;
+
         another_input *= compare_result;
-        another_input *= (T)-2;
         another_input += temp;
         result += another_input;
     }
@@ -523,8 +538,8 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
         another_input.fill(0);
         another_input.offline_known = true;
         compare_result *= another_input;
-        compare_result *= (T)-2;
-        compare_result += temp;
+        // compare_result *= static_cast<U>(-2);
+        // compare_result += temp;
         result += compare_result;
     }
     *result.getShare(0) += ur;
@@ -561,8 +576,10 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         // test passed. run test passed.
         DeviceData<U> alpha(size * T_bits_count);
         gpu::vectorExpand(&delta, &alpha, T_bits_count);
-        alpha *= (T)-2;
-        alpha += 1;
+        alpha *= static_cast<U>(-2);
+        alpha += p+1;
+        alpha %= p;
+
         DeviceData<U> rbi(size * T_bits_count);
         DeviceData<U> rbn1(size);
         rbi.fill(1);
@@ -578,12 +595,14 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         another_input.fill(0);
         another_input *= bi_xor;
         another_input %= p;
-        another_input *= (T)-2;
+        another_input *= static_cast<U>(-2);
         another_input += b;
         another_input %= p;
         ROG<U> &prefix_xor = another_input;
         prefix_xor *= 3;
-        // note the output of bitexpand is small endian.
+        prefix_xor %= p;
+
+        // note the output of bitexpand is little  endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
         DeviceData<U> key(size);
@@ -639,11 +658,12 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         another_input.offline_known = true;
         bi_xor *= another_input;
         bi_xor %= p;
-        bi_xor *= (T)-2;
-        bi_xor += b;
+        bi_xor *= static_cast<U>(-2);
+        *bi_xor.getShare(0) += b;
         bi_xor %= p;
         ROG<U> &prefix_xor = another_input;
         prefix_xor *= 3;
+        prefix_xor %= 3;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
@@ -652,7 +672,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         DeviceData<U> key_expand(size * T_bits_count);
         gpu::vectorExpand(&key, &key_expand, T_bits_count);
         thrust::inclusive_scan_by_key(key_expand.begin(), key_expand.end(), reverse_prefix_xor_iter, reverse_prefix_xor_iter);
-        b *= (T)-1;
+        b *= static_cast<U>(-1);
         b += *prefix_xor.getShare(0);
         b %= p;
 
@@ -664,6 +684,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         StridedRange<I2> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
         DeviceData<U, SRIterator> reduce_xor(bn1_range.begin(), bn1_range.end());
         bn1 += reduce_xor;
+        bn1 %= p;
 
         // MILL step 5: transmission.
         DeviceData<U> recvbi(size * T_bits_count);
@@ -693,6 +714,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
             DeviceData<U, SRIterator> b_even(b_even_range.begin(), b_even_range.end());
             DeviceData<U, SRIterator> b_odd(b_odd_range.begin(), b_odd_range.end());
             b_even *= b_odd;
+            b_even %= p;
             stride *= 2;
         }
         StridedRange<I2> b_range(b.begin(), b.end(), stride);
@@ -1416,7 +1438,7 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
         r.fill(0);
         if (partyNum == ROG<uint32_t>::CLIENT) {
             r -= *a.getShare(0);
-            r *= (T)-1;
+            r *= static_cast<T>(-1);
             comm_profiler.start();
             r.transmit(ROG<T>::otherParty(partyNum));
             r.join();
