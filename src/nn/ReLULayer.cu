@@ -2,10 +2,7 @@
 #pragma once
 
 #include "ReLULayer.h"
-#include "../mpc/RSS.h"
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
 #include "../util/Profiler.h"
 
 #include <numeric>
@@ -128,17 +125,8 @@ void ReLULayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwar
     //return deltas;
 }
 
-template class ReLULayer<uint32_t, RSS>;
-template class ReLULayer<uint64_t, RSS>;
-
 template class ReLULayer<uint32_t, TPC>;
 template class ReLULayer<uint64_t, TPC>;
-
-template class ReLULayer<uint32_t, FPC>;
-template class ReLULayer<uint64_t, FPC>;
-
-template class ReLULayer<uint32_t, OPC>;
-template class ReLULayer<uint64_t, OPC>;
 
 template class ReLULayer<uint32_t, GFO>;
 template class ReLULayer<uint64_t, GFO>;

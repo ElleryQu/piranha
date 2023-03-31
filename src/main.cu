@@ -2,8 +2,6 @@
 #include <string>
 
 #include "globals.h"
-#include "mpc/AESObject.h"
-#include "mpc/Precompute.h"
 #include "util/connect.h"
 #include "nn/NeuralNetConfig.h"
 #include "nn/NeuralNetwork.h"
@@ -12,15 +10,15 @@
 #include "util/model.h"
 #include "nn/MaxpoolLayer.h"
 #include "nn/ReLULayer.h"
-#include "mpc/RSS.h"
-#include "mpc/TPC.h"
-#include "mpc/FPC.h"
-#include "mpc/OPC.h"
-#include "mpc/GForce.h"
-#include "mpc/Rogue.h"
 #include "util/util.cuh"
 #include "../ext/cxxopts.hpp"
 #include <json.hpp>
+
+#include "mpc/AESObject.h"
+#include "mpc/Precompute.h"
+#include "mpc/TPC.h"
+#include "mpc/GForce.h"
+#include "mpc/Rogue.h"
 
 int partyNum;
 std::vector<AESObject*> aes_objects;
@@ -124,24 +122,14 @@ int main(int argc, char** argv) {
     std::cout << "config network: " << piranha_config["network"] << std::endl;
     loadModel(&nn_config, piranha_config["network"]);
 
-#ifdef ONEPC
-    NeuralNetwork<uint64_t, OPC> net(&nn_config, piranha_config["nn_seed"]);
-#else
 #ifdef TWOPC
     NeuralNetwork<uint64_t, TPC> net(&nn_config, piranha_config["nn_seed"]);
-#else
-#ifdef FOURPC
-    NeuralNetwork<uint64_t, FPC> net(&nn_config, piranha_config["nn_seed"]);
 #else
 #ifdef GFORCE
     NeuralNetwork<uint64_t, GFO> net(&nn_config, piranha_config["nn_seed"]);
 #else
 #ifdef ROGUE
     NeuralNetwork<uint64_t, ROG> net(&nn_config, piranha_config["nn_seed"]);
-#else
-    NeuralNetwork<uint64_t, RSS> net(&nn_config, piranha_config["nn_seed"]);
-#endif
-#endif
 #endif
 #endif
 #endif
@@ -378,7 +366,7 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
                 net->saveSnapshot(snapshot_path);
 
                 if (piranha_config["test_iteration_snapshots"]) {
-                    NeuralNetwork<uint64_t, OPC> test_net(config, 0);
+                    NeuralNetwork<uint64_t, TPC> test_net(config, 0);
                     test_net.loadSnapshot(snapshot_path);
 
                     test(&test_net, test_data, test_labels);

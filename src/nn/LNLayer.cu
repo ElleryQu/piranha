@@ -1,10 +1,7 @@
 #pragma once
 
 #include "LNLayer.h"
-#include "../mpc/RSS.h"
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
 
 #include <math.h>
 #include <numeric>
@@ -287,17 +284,8 @@ void LNLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwardI
     debug_profiler.accumulate("bn-backward");
 }
 
-template class LNLayer<uint32_t, RSS>;
-template class LNLayer<uint64_t, RSS>;
-
 template class LNLayer<uint32_t, TPC>;
 template class LNLayer<uint64_t, TPC>;
-
-template class LNLayer<uint32_t, FPC>;
-template class LNLayer<uint64_t, FPC>;
-
-template class LNLayer<uint32_t, OPC>;
-template class LNLayer<uint64_t, OPC>;
 
 template class LNLayer<uint32_t, GFO>;
 template class LNLayer<uint64_t, GFO>;

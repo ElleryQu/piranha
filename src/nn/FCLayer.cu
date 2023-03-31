@@ -7,10 +7,7 @@
 
 #include "../gpu/matrix.cuh"
 
-#include "../mpc/RSS.h"
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
 
 Profiler matmul_profiler;
 extern Profiler debug_profiler;
@@ -228,17 +225,8 @@ void FCLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwardI
     this->layer_profiler.accumulate("fc-backward");
 }
 
-template class FCLayer<uint32_t, RSS>;
-template class FCLayer<uint64_t, RSS>;
-
 template class FCLayer<uint32_t, TPC>;
 template class FCLayer<uint64_t, TPC>;
-
-template class FCLayer<uint32_t, FPC>;
-template class FCLayer<uint64_t, FPC>;
-
-template class FCLayer<uint32_t, OPC>;
-template class FCLayer<uint64_t, OPC>;
 
 template class FCLayer<uint32_t, GFO>;
 template class FCLayer<uint64_t, GFO>;

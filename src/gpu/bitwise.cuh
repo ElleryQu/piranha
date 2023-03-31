@@ -66,6 +66,14 @@ __global__ void setCarryOutMSB(T *rbits, T *abits, T *msb, size_t n, int bitWidt
     }
 }
 
+template<typename U>
+__global__ void getLSBs(U *bits, U *lsbs, size_t num_lsbs, size_t bitWidth) {
+
+    int IDX = blockIdx.x*blockDim.x+threadIdx.x;
+    if (IDX < num_lsbs) {
+        lsbs[IDX] = bits[(IDX * bitWidth)];
+    } 
+}
 
 // example: b B B B b B B B
 template<typename T>
@@ -213,6 +221,35 @@ void setCarryOutMSB(DeviceData<T> &rbits, DeviceData<T> &abits, DeviceData<T> &m
         msb.size(),
         bitWidth,
         xor_msb
+    );
+
+    cudaThreadSynchronize();
+}
+
+template<typename U>
+void getLSBs(DeviceData<U> &bits, DeviceData<U> &lsbs, size_t bitWidth) {
+
+    int cols = lsbs.size();
+    int rows = 1;
+
+    dim3 threadsPerBlock(cols, rows);
+    dim3 blocksPerGrid(1, 1);
+
+    if (cols > MAX_THREADS_PER_BLOCK) {
+        threadsPerBlock.x = MAX_THREADS_PER_BLOCK;
+        blocksPerGrid.x = ceil(double(cols)/double(threadsPerBlock.x));
+    }
+    
+    if (rows > MAX_THREADS_PER_BLOCK) {
+        threadsPerBlock.y = MAX_THREADS_PER_BLOCK;
+        blocksPerGrid.y = ceil(double(rows)/double(threadsPerBlock.y));
+    }
+
+    kernel::getLSBs<<<blocksPerGrid,threadsPerBlock>>>(
+        thrust::raw_pointer_cast(&bits.begin()[0]),
+        thrust::raw_pointer_cast(&lsbs.begin()[0]),
+        lsbs.size(),
+        bitWidth
     );
 
     cudaThreadSynchronize();

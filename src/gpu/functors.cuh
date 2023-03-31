@@ -59,6 +59,24 @@ struct scalar_mod_functor {
 };
 
 template<typename T>
+struct scalar_xor_functor {
+    const T a;
+    scalar_xor_functor(T _a) : a(_a) {}
+    __host__ __device__ T operator()(const T &x) const {
+        return x ^ a;
+    }
+};
+
+template<typename T>
+struct scalar_and_functor {
+    const T a;
+    scalar_and_functor(T _a) : a(_a) {}
+    __host__ __device__ T operator()(const T &x) const {
+        return x & a;
+    }
+};
+
+template<typename T>
 struct scalar_arith_rshift_functor {
 
     typedef typename std::make_signed<T>::type S;

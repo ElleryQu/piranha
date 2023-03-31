@@ -31,8 +31,8 @@ class MaxpoolLayer : public Layer<T, Share> {
 
         //Getters
         Share<T> *getActivation() {return &activations;};
-        Share<T> *getWeights() {return nullptr;}
-        Share<T> *getBiases() {return nullptr;}
+        Share<T> *getWeights() {return nullptr;};
+        Share<T> *getBiases() {return nullptr;};
         Share<T> *getDelta() {return &deltas;};
 
         static Profiler maxpool_profiler;

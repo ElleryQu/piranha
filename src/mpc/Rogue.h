@@ -12,6 +12,10 @@
 #include "../gpu/DeviceData.h"
 #include "../globals.h"
 
+#include "../mpc/MTPC.h"
+#include "../mpc/TPC.h"
+// #include "../mpc/GForce.h"
+
 template <typename T, typename I>
 class ROGBase {
 
@@ -116,6 +120,9 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
 template<typename T, typename U, typename I, typename I2>
 void privateCompare(ROG<T, I> &input, ROG<U, I2> &result);
 
+template<typename T, typename U, typename I, typename I2, typename I3>
+void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result);
+
 template<typename T, typename I, typename I2>
 void reconstruct(ROG<T, I> &in, DeviceData<T, I2> &out);
 
@@ -151,6 +158,9 @@ void ReLU(const ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult);
 
 template<typename T, typename U, typename I, typename I2, typename I3>
 void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k);
+
+template<typename T, typename I, typename I2>
+void reshare(const ROG<T,I> &in, MTPC<T, I2> &out);
 
 // static int p = 257;
 

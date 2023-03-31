@@ -1,3 +1,6 @@
+// /**
+//  * 2PC Func test.
+// */
 
 // #include "unitTests.h"
 
@@ -8,7 +11,7 @@
 //     using ParamType = T;
 // };
 
-// using Types = testing::Types<RSS<uint64_t>, TPC<uint64_t>, FPC<uint64_t>, OPC<uint64_t> >;
+// using Types = testing::Types<TPC<uint64_t>>;
 // TYPED_TEST_CASE(FuncTest, Types);
 
 // TYPED_TEST(FuncTest, Reconstruct) {
@@ -219,74 +222,6 @@
 //     reconstruct(out, result);
 //     assertDeviceData(result, expected);
 // }
-
-// /*
-// TYPED_TEST(FuncTest, LocalConvolution) {
-
-//     using Share = typename TestFixture::ParamType;
-//     using T = typename Share::share_type;
-
-//     if (partyNum >= Share::numParties) return;
-
-//     size_t imageWidth = 2, imageHeight = 2;
-//     size_t filterSize = 3;
-//     size_t Din = 2, Dout = 2;
-//     size_t stride = 1, padding = 1;
-
-//     // 2x2, Din=2
-//     Share im = {
-//         1, 2,
-//         1, 2,
-
-//         3, 0,
-//         1, 1
-//     };
-
-//     // 3x3, Din=2, Dout=2
-//     Share filters = {
-//         1, 2, 1,
-//         0, 1, 0,
-//         1, 2, 2,
-
-//         0, 1, 0,
-//         0, 0, 1,
-//         2, 1, 1,
-
-
-//         1, 1, 1,
-//         0, 0, 0,
-//         1, 1, 1,
-
-//         1, 0, 1,
-//         1, 0, 1,
-//         1, 0, 1
-//     };
-
-//     // imageW - filterSize + (2*padding) / stride + 1
-//     size_t wKernels = 2;
-//     // imageH - filterSize + (2*padding) / stride + 1
-//     size_t hKernels = 2;
-//     DeviceData<T> out(wKernels * hKernels * 2); // Dout = 2
-
-//     localConvolution(im, filters, out, imageWidth, imageHeight, filterSize, Din, Dout, stride, padding);
-
-//     Share rss_out(out.size());
-//     *rss_out.getShare(0) += out;
-//     dividePublic(rss_out, 1 << FLOAT_PRECISION);
-
-//     DeviceData<T> result(out.size());
-//     reconstruct(rss_out, result);
-//     std::vector<double> expected = {
-//         9, 10,
-//         9, 7,
-
-//         4, 7,    
-//         4, 7
-//     };
-
-//     assertDeviceData(result, expected);
-// }
-// */
 
 // TYPED_TEST(FuncTest, DRELU) {
 
@@ -617,4 +552,3 @@
 //     reconstruct(result, super_result);
 //     assertDeviceData(super_result, expected, true, 1e-1);
 // }
-

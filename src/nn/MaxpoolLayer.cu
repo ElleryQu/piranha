@@ -1,11 +1,6 @@
 
 #include "MaxpoolLayer.h"
 
-#include "../mpc/RSS.h"
-#include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
-
 #include <numeric>
 
 extern nlohmann::json piranha_config;
@@ -184,17 +179,8 @@ void MaxpoolLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &for
     this->layer_profiler.accumulate("maxpool-backward");
 }
 
-template class MaxpoolLayer<uint32_t, RSS>;
-template class MaxpoolLayer<uint64_t, RSS>;
-
 template class MaxpoolLayer<uint32_t, TPC>;
 template class MaxpoolLayer<uint64_t, TPC>;
-
-template class MaxpoolLayer<uint32_t, FPC>;
-template class MaxpoolLayer<uint64_t, FPC>;
-
-template class MaxpoolLayer<uint32_t, OPC>;
-template class MaxpoolLayer<uint64_t, OPC>;
 
 template class MaxpoolLayer<uint32_t, GFO>;
 template class MaxpoolLayer<uint64_t, GFO>;

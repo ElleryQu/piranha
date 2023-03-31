@@ -442,9 +442,9 @@
 
 // TEST(GPUTest, ExpandCompare) {
 
-//     RSS<uint8_t> b({0, 1, 1, 0}, false);
-//     RSS<uint8_t> negb({1, 0, 0, 1}, false);
-//     RSS<uint8_t> output(8);
+//     TPC<uint8_t> b({0, 1, 1, 0}, false);
+//     TPC<uint8_t> negb({1, 0, 0, 1}, false);
+//     TPC<uint8_t> output(8);
 
 //     gpu::expandCompare(*b.getShare(0), *negb.getShare(0), *output.getShare(0));
 //     gpu::expandCompare(*b.getShare(1), *negb.getShare(1), *output.getShare(1));

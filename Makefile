@@ -64,91 +64,89 @@ clean:
 
 ################################# Remote runs ##########################################
 
-run: $(BINARY)
-	#@./$(BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#@./$(BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#@./$(BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#@./$(BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)
-	@echo "Execution completed"
+# run: $(BINARY)
+# 	#@./$(BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#@./$(BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#@./$(BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#@./$(BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# 	@echo "Execution completed"
 
-gdb: $(DEBUG_BINARY)
-	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#cuda-gdb --args ./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	cuda-gdb --args ./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)
-	@echo "Execution completed"
+# gdb: $(DEBUG_BINARY)
+# 	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#cuda-gdb --args ./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	cuda-gdb --args ./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# 	@echo "Execution completed"
 
-gdb-one: $(DEBUG_BINARY)
-	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#cuda-gdb --args ./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	cuda-gdb --args ./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST)
-	@echo "Execution completed"
+# gdb-one: $(DEBUG_BINARY)
+# 	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#cuda-gdb --args ./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	cuda-gdb --args ./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# 	@echo "Execution completed"
 
-gdb-two: $(DEBUG_BINARY)
-	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#cuda-gdb --args ./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	cuda-gdb --args ./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST)
-	@echo "Execution completed"
+# gdb-two: $(DEBUG_BINARY)
+# 	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#cuda-gdb --args ./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	cuda-gdb --args ./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# 	@echo "Execution completed"
 
-gdb-three: $(DEBUG_BINARY)
-	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#cuda-gdb --args ./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	cuda-gdb --args ./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST)
-	@echo "Execution completed"
+# gdb-three: $(DEBUG_BINARY)
+# 	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#cuda-gdb --args ./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	cuda-gdb --args ./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# 	@echo "Execution completed"
 
-memcheck: $(DEBUG_BINARY)
-	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	#cuda-memcheck ./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
-	cuda-memcheck ./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)	
-	@echo "Execution completed"
+# memcheck: $(DEBUG_BINARY)
+# 	#./$(DEBUG_BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#./$(DEBUG_BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	#cuda-memcheck ./$(DEBUG_BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(DEBUG_BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	@./$(DEBUG_BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST) >/dev/null 2>&1 &
+# 	cuda-memcheck ./$(DEBUG_BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)	
+# 	@echo "Execution completed"
 
-#########################################################################################
+# #########################################################################################
 
-party: $(BINARY)
-	@./$(BINARY) $(PARTY_NUM) $(CONFIG_FILE) --gtest_filter=$(TEST)
+# party: $(BINARY)
+# 	@./$(BINARY) $(PARTY_NUM) $(CONFIG_FILE) --gtest_filter=$(TEST)
 
-zero: $(BINARY)
-	#@./$(BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# zero: $(BINARY)
+# 	#@./$(BINARY) 0 files/IP_$(RUN_TYPE) files/keys/key0 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(BINARY) 0 $(CONFIG_FILE) --gtest_filter=$(TEST)
 	
-one: $(BINARY)
-	#@./$(BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# one: $(BINARY)
+# 	#@./$(BINARY) 1 files/IP_$(RUN_TYPE) files/keys/key1 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(BINARY) 1 $(CONFIG_FILE) --gtest_filter=$(TEST)
 
-two: $(BINARY)
-	#@./$(BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST)
+# two: $(BINARY)
+# 	#@./$(BINARY) 2 files/IP_$(RUN_TYPE) files/keys/key2 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(BINARY) 2 $(CONFIG_FILE) --gtest_filter=$(TEST)
 
-three: $(BINARY)
-	#@./$(BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
-	@./$(BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST)
-
-
+# three: $(BINARY)
+# 	#@./$(BINARY) 3 files/IP_$(RUN_TYPE) files/keys/key3 $(NETWORK) $(LR_FILE) $(SEED) $(RUN_NAME) $(PRELOAD) --gtest_filter=$(TEST)
+# 	@./$(BINARY) 3 $(CONFIG_FILE) --gtest_filter=$(TEST)

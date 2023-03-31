@@ -1,3 +1,7 @@
+/**
+ * Rogue Func test.
+*/
+
 #include "unitTests.h"
 
 extern uint64_t q;

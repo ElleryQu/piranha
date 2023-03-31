@@ -1,5 +1,9 @@
+/**
+ * Rogue benchmark.
+*/
 
 #include "unitTests.h" 
+
 extern Profiler comm_profiler;
 extern Profiler func_profiler;
 
@@ -7,7 +11,7 @@ extern std::default_random_engine generator;
 
 #define TEST_USLEEP_TIME 0
 #define OFFLINE_KNOWN true
-#define EXP_TIMES 1
+#define EXP_TIMES 100
 
 template<typename T>
 struct EvalTest: public testing::Test {
@@ -384,91 +388,3 @@ TYPED_TEST(EvalTest, ReLU_Profiling_BENCHMARK) {
             );
     }
 }
-       
-
-// TYPED_TEST(EvalTest, Delphi_Convolutions) {
-
-//     if (partyNum >= 2) return;
-
-//     std::vector<double> rnd_vals;
-
-//     std::vector<std::tuple<int, int, int, int, int> > dims = {
-//         std::make_tuple(32, 16, 16, 3, 32),
-//         std::make_tuple(32, 16, 16, 3, 32),
-//         std::make_tuple(16, 32, 32, 3, 16),
-//         std::make_tuple(8, 64, 64, 3, 8),
-//     };
-
-//     for (int i = 0; i < dims.size(); i++) {
-
-//         auto dim = dims[i];
-
-//         int im_size = std::get<0>(dim);
-//         int din = std::get<1>(dim);
-//         int dout = std::get<2>(dim);
-//         int f_size = std::get<3>(dim);
-//         int out_size = std::get<4>(dim);
-
-//         int N = 1;
-
-//         int a_size = N * din * im_size * im_size;
-//         random_vector(rnd_vals, a_size);
-//         GFO<uint64_t> a(a_size);
-//         a.setPublic(rnd_vals);
-
-//         int b_size = din * dout * f_size * f_size;
-//         random_vector(rnd_vals, b_size);
-//         GFO<uint64_t> b(b_size);
-//         b.setPublic(rnd_vals);
-
-//         GFO<uint64_t> c(N * dout * out_size * out_size);
-
-//         Profiler profiler;
-//         profiler.start();
-
-// 	comm_profiler.clear();
-
-//         convolution(a, b, c, cutlass::conv::Operator::kFprop, N, im_size, im_size, f_size, din, dout, 1, 1, FLOAT_PRECISION);
-
-//         profiler.accumulate("conv");
-
-//         if (i == 0) continue; // sacrifice run to spin up GPU
-//         printf("GFO - conv (N=1, Iw/h=%d, Din=%d, Dout=%d, f=%d) - %f sec.\n", im_size, din, dout, f_size, profiler.get_elapsed("conv") / 1000.0);
-//     	printf("TX comm (MB),%f\n", comm_profiler.get_comm_tx_bytes() / 1024.0 / 1024.0);
-//     	printf("RX comm (MB),%f\n", comm_profiler.get_comm_rx_bytes() / 1024.0 / 1024.0);
-//     }
-// }
-
-// TYPED_TEST(EvalTest, GForce_Relu) {
-
-//     if (partyNum >= 2) return;
-
-//     std::vector<double> rnd_vals;
-
-//     std::vector<int> N = {100, 10000, 131072};
-//     for (int i = 0; i < N.size(); i++) {
-
-//         int n = N[i];
-
-//         random_vector(rnd_vals, n);
-//         GFO<uint64_t> a(n);
-//         a.setPublic(rnd_vals);
-
-//         GFO<uint64_t> c(n);
-//         GFO<uint8_t> dc(n);
-
-//         Profiler profiler;
-//         profiler.start();
-
-// 	comm_profiler.clear();
-
-//         ReLU(a, c, dc);
-
-//         profiler.accumulate("relu");
-
-//         if (i == 0) continue; // sacrifice run to spin up GPU
-//         printf("GFO - relu (N=%d) - %f sec.\n", n, profiler.get_elapsed("relu") / 1000.0);
-//     	printf("TX comm (MB),%f\n", comm_profiler.get_comm_tx_bytes() / 1024.0 / 1024.0);
-//     	printf("RX comm (MB),%f\n", comm_profiler.get_comm_rx_bytes() / 1024.0 / 1024.0);
-//     }
-// }

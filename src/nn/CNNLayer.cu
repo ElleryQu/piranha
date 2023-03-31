@@ -11,10 +11,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/transform.h>
 
-#include "../mpc/RSS.h"
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
 
 extern Profiler debug_profiler;
 extern nlohmann::json piranha_config;
@@ -231,17 +228,8 @@ void CNNLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forward
     */
 }
 
-template class CNNLayer<uint32_t, RSS>;
-template class CNNLayer<uint64_t, RSS>;
-
 template class CNNLayer<uint32_t, TPC>;
 template class CNNLayer<uint64_t, TPC>;
-
-template class CNNLayer<uint32_t, FPC>;
-template class CNNLayer<uint64_t, FPC>;
-
-template class CNNLayer<uint32_t, OPC>;
-template class CNNLayer<uint64_t, OPC>;
 
 template class CNNLayer<uint32_t, GFO>;
 template class CNNLayer<uint64_t, GFO>;

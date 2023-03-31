@@ -498,51 +498,9 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
 
     // Step 4: the final step.
     r /= denominators;
-    DeviceData<U> ur(size);
-    thrust::copy(r.begin(), r.end(), ur.begin());
-    // DeviceData<U> temp(size);
-    // temp.fill(0);
-    // temp += *compare_result.getShare(0);
-    if (partyNum == ROG<uint32_t>::SERVER) {
-        ur *= static_cast<T>(-1);
-
-        // // bit2A.
-        // // placeholder for client's input.
-        // ROG<U> another_input(size); 
-        // another_input.fill(0);
-        // compare_result.offline_known = true;
-        // another_input *= compare_result;
-        // another_input *= static_cast<U>(-2);
-        // another_input += temp;
-        // result += another_input;
-
-        DeviceData<U> temp(size);
-        temp.fill(0);
-        temp += *compare_result.getShare(0);
-
-        ROG<U> another_input(size); 
-        another_input.fill(0);
-        compare_result.offline_known = true;
-        compare_result *= static_cast<U>(-2);
-        // *compare_result.getShare(0) += 1
-        compare_result += 1;
-
-        another_input *= compare_result;
-        another_input += temp;
-        result += another_input;
-    }
-    if (partyNum == ROG<uint32_t>::CLIENT) {
-        // bit2A.
-        // placeholder for server's input.
-        ROG<U> another_input(size); 
-        another_input.fill(0);
-        another_input.offline_known = true;
-        compare_result *= another_input;
-        // compare_result *= static_cast<U>(-2);
-        // compare_result += temp;
-        result += compare_result;
-    }
-    *result.getShare(0) += ur;
+    r &= 1;
+    thrust::copy(r.begin(), r.end(), result.getShare(0)->begin());
+    result ^= compare_result;
 
     func_profiler.add_comm_round();
 }
@@ -926,42 +884,31 @@ void localFprop(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
     else
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // SERVER: r^S.     
-        // CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(C.size());
-        offline_output.fill(0);
-
-        // SERVER: x-r^C.   
-        // CLIENT: r^C.
-        DeviceData<T> r(A.size());
-        r.fill(0);
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            r -= *A.getShare(0);
-            r *= (T)-1;
-            comm_profiler.start();
-            r.transmit(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            *C.getShare(0) += offline_output;
+            // TODO: offline phase.
+            DeviceData<T> Zc(C.size()); 
+            Zc.zero();
+
+            C.zero();
+            *C.getShare(0) += Zc;
         }
         else if (partyNum == ROG<uint32_t>::SERVER) {
-            comm_profiler.start();
-            r.receive(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            r += *A.getShare(0);
-            DeviceData<T> b_copy(B.size());
-            b_copy += *B.getShare(0);
-            gpu::conv_fprop(&r, &b_copy, C.getShare(0), 
+            // TODO: offline phase.
+            DeviceData<T> Sz(C.size()), Rs(C.size());
+            Sz.zero(), Rs.zero();
+
+            DeviceData<T> a_copy(A.size()), b_copy(B.size());
+            a_copy.zero(), b_copy.zero();
+            a_copy += *A.getShare(0), b_copy += *B.getShare(0);
+            gpu::conv_fprop(&a_copy, &b_copy, C.getShare(0), 
                 batchSize, imageHeight, imageWidth, Din,
                 Dout, filterHeight, filterWidth,
                 paddingHeight, paddingWidth,
                 stride, dilation);
-            *C.getShare(0) += offline_output;
-        }
-        cudaThreadSynchronize();
 
-        func_profiler.add_comm_round();
+            *C.getShare(0) += Sz;
+            *C.getShare(0) -= Rs;
+        }
     }
 }
 
@@ -1017,42 +964,31 @@ void localDgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
     else
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // SERVER: r^S.     
-        // CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(C.size());
-        offline_output.fill(0);
-
-        // SERVER: x-r^C.   
-        // CLIENT: r^C.
-        DeviceData<T> r(A.size());
-        r.fill(0);
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            r -= *A.getShare(0);
-            r *= (T)-1;
-            comm_profiler.start();
-            r.transmit(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            *C.getShare(0) += offline_output;
+            // TODO: offline phase.
+            DeviceData<T> Zc(C.size()); 
+            Zc.zero();
+
+            C.zero();
+            *C.getShare(0) += Zc;
         }
         else if (partyNum == ROG<uint32_t>::SERVER) {
-            comm_profiler.start();
-            r.receive(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            r += *A.getShare(0);
-            DeviceData<T> b_copy(B.size());
-            b_copy += *B.getShare(0);
-            gpu::conv_dgrad(&r, &b_copy, C.getShare(0), 
+            // TODO: offline phase.
+            DeviceData<T> Sz(C.size()), Rs(C.size());
+            Sz.zero(), Rs.zero();
+
+            DeviceData<T> a_copy(A.size()), b_copy(B.size());
+            a_copy.zero(), b_copy.zero();
+            a_copy += *A.getShare(0), b_copy += *B.getShare(0);
+            gpu::conv_dgrad(&a_copy, &b_copy, C.getShare(0), 
                 batchSize, outputHeight, outputWidth, Dout,
                 filterHeight, filterWidth, Din,
                 paddingHeight, paddingWidth, stride, dilation,
                 imageHeight, imageWidth);
-            *C.getShare(0) += offline_output;
-        }
-        cudaThreadSynchronize();
 
-        func_profiler.add_comm_round();
+            *C.getShare(0) += Sz;
+            *C.getShare(0) -= Rs;
+        }
     }
 }
 
@@ -1108,42 +1044,31 @@ void localWgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
     else
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // SERVER: r^S.     
-        // CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(C.size());
-        offline_output.fill(0);
-
-        // SERVER: x-r^C.   
-        // CLIENT: r^C.
-        DeviceData<T> r(A.size());
-        r.fill(0);
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            r -= *A.getShare(0);
-            r *= (T)-1;
-            comm_profiler.start();
-            r.transmit(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            *C.getShare(0) += offline_output;
+            // TODO: offline phase.
+            DeviceData<T> Zc(C.size()); 
+            Zc.zero();
+
+            C.zero();
+            *C.getShare(0) += Zc;
         }
         else if (partyNum == ROG<uint32_t>::SERVER) {
-            comm_profiler.start();
-            r.receive(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            r += *A.getShare(0);
-            DeviceData<T> b_copy(B.size());
-            b_copy += *B.getShare(0);
-            gpu::conv_wgrad(&r, &b_copy, C.getShare(0), 
+            // TODO: offline phase.
+            DeviceData<T> Sz(C.size()), Rs(C.size());
+            Sz.zero(), Rs.zero();
+
+            DeviceData<T> a_copy(A.size()), b_copy(B.size());
+            a_copy.zero(), b_copy.zero();
+            a_copy += *A.getShare(0), b_copy += *B.getShare(0);
+            gpu::conv_wgrad(&a_copy, &b_copy, C.getShare(0), 
                 batchSize, outputHeight, outputWidth, Dout,
                 imageHeight, imageWidth, Din,
                 filterHeight, filterWidth,
                 paddingHeight, paddingWidth, stride, dilation);
-            *C.getShare(0) += offline_output;
-        }
-        cudaThreadSynchronize();
 
-        func_profiler.add_comm_round();
+            *C.getShare(0) += Sz;
+            *C.getShare(0) -= Rs;
+        }
     }
 }
 
@@ -1211,20 +1136,88 @@ void dReLU(const ROG<T, I> &input, ROG<U, I2> &result) {
     
 template<typename T, typename U, typename I, typename I2, typename I3>
 void ReLU(const ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult) {
-
-    //TO_BE_DONE
+    MTPC<T> minput(input.size());
+    minput.zero();
 
     func_profiler.start();
+    reshare(input, minput);
     dReLU(input, dresult);
+    FusionMux(minput, dresult, result);
     func_profiler.accumulate("relu-drelu");
+}
 
-    func_profiler.start();
-    // TODO: can we eliminate this copy op?
-    thrust::copy(dresult.getShare(0)->begin(), 
-        dresult.getShare(0)->end(),
-        result.getShare(0)->begin());
-    result *= input;
-    func_profiler.accumulate("relu-selectshare");
+template<typename T, typename U, typename I, typename I2, typename I3>
+void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
+    int size = x.size();
+
+    // TODO: offline.
+    ROG<T> dbdx(size), tb(size), db(size);
+    MTPC<T> bang(size);
+    dbdx.zero(), bang.zero(), result.zero();
+    thrust::copy(b.getShare(0)->begin(), 
+        b.getShare(0)->end(),  
+        tb.getShare(0)->begin());
+    if (partyNum == ROG<uint32_t>::SERVER) {
+        *bang.getShare(1) += *tb.getShare(0);
+    }
+    thrust::copy(bang.getShare(1)->begin(), 
+        bang.getShare(1)->end(),
+        db.getShare(0)->begin());
+
+    // online.
+    *bang.getShare(0) ^= *bang.getShare(1);
+    *bang.getShare(0) ^= *tb.getShare(0);
+    
+    // Compute D_b and [\zeta]^C. 
+    if (partyNum == ROG<uint32_t>::CLIENT) {
+        *db.getShare(0) *= *x.getShare(0);
+        *db.getShare(0) -= *dbdx.getShare(0);
+
+        // now, dbdx holds (1-2D_b).
+        dbdx.getShare(0)->zero();
+        *dbdx.getShare(0) += *bang.getShare(0);
+        *dbdx.getShare(0) *= static_cast<T>(-2);
+        *dbdx.getShare(0) += 1;
+
+        *db.getShare(0) *= *dbdx.getShare(0);
+        dbdx.getShare(0)->zero();
+        *dbdx.getShare(0) -= *result.getShare(0);
+        *dbdx.getShare(0) += *db.getShare(0);
+
+        db.getShare(0)->zero();
+        *db.getShare(0) += *bang.getShare(0);
+        *db.getShare(0) *= *x.getShare(1);
+        *dbdx.getShare(0) -= *db.getShare(0);
+
+        bang.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
+        bang.getShare(0)->join();
+        dbdx.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
+        dbdx.getShare(0)->join();
+    }
+    else if (partyNum == ROG<uint32_t>::SERVER) {
+        bang.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+        bang.getShare(0)->join();
+        result.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+        result.getShare(0)->join();
+
+        *db.getShare(0) *= *x.getShare(0);
+        *db.getShare(0) -= *dbdx.getShare(0);
+
+        // now, dbdx holds (1-2D_b).
+        dbdx.getShare(0)->zero();
+        *dbdx.getShare(0) += *bang.getShare(0);
+        *dbdx.getShare(0) *= static_cast<T>(-2);
+        *dbdx.getShare(0) += 1;
+        *db.getShare(0) *= *dbdx.getShare(0);
+
+        dbdx.getShare(0)->zero();
+        *dbdx.getShare(0) += *x.getShare(0);
+        *dbdx.getShare(0) -= *x.getShare(1);
+        *bang.getShare(0) *= *dbdx.getShare(0);
+
+        *result.getShare(0) += *bang.getShare(0);
+        *result.getShare(0) += *db.getShare(0);
+    }
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
@@ -1427,37 +1420,27 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
     else 
     {
         // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // SERVER: r^S.     
-        // CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(c.size());
-        offline_output.fill(0);
-
-        // SERVER: x-r^C.   
-        // CLIENT: r^C.
-        DeviceData<T> r(a.size());
-        r.fill(0);
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            r -= *a.getShare(0);
-            r *= static_cast<T>(-1);
-            comm_profiler.start();
-            r.transmit(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            *c.getShare(0) += offline_output;
+            // TODO: offline phase.
+            DeviceData<T> Zc(c.size()); 
+            Zc.zero();
+
+            c.zero();
+            *c.getShare(0) += Zc;
         }
         else if (partyNum == ROG<uint32_t>::SERVER) {
-            comm_profiler.start();
-            r.receive(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            r += *a.getShare(0);
-            DeviceData<T> b_copy(b.size());
-            b_copy += *b.getShare(0);
-            gpu::gemm(M, N, K, &r, transpose_a, &b_copy, transpose_b, c.getShare(0), transpose_c);
-            *c.getShare(0) += offline_output;
-        }
+            // TODO: offline phase.
+            DeviceData<T> Sz(c.size()), Rs(c.size());
+            Sz.zero(), Rs.zero();
 
-        func_profiler.add_comm_round();
+            DeviceData<T> a_copy(a.size()), b_copy(b.size());
+            a_copy.zero(), b_copy.zero();
+            a_copy += *a.getShare(0), b_copy += *b.getShare(0);
+            gpu::gemm(M, N, K, &a_copy, transpose_a, &b_copy, transpose_b, c.getShare(0), transpose_c);
+
+            *c.getShare(0) += Sz;
+            *c.getShare(0) -= Rs;
+        }
     }
 }
 
@@ -1670,4 +1653,28 @@ void convex_comb(ROG<T, I> &a, ROG<T, I> &c, DeviceData<U, I2> &b) {
     );
 }
 
+// convert a [C, .]-sharing to <.>-sharing.
+template<typename T, typename I, typename I2>
+void reshare(const ROG<T,I> &in, MTPC<T, I2> &out){
+    // TODO: offline.
+    int size = in.size();
+    
+    if (partyNum == ROG<T>::CLIENT){
+        out.getShare(1)->zero();
+        *out.getShare(1) -= *in.getShare(0);
+    }
 
+    // online.
+    if (partyNum == ROG<T>::SERVER){
+        out.getShare(0)->zero();
+        *out.getShare(0) += *in.getShare(0);
+        *out.getShare(0) += *out.getShare(1);
+
+        out.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
+        out.getShare(0)->join();
+    }
+    else if (partyNum == ROG<T>::CLIENT){
+        out.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+        out.getShare(0)->join();
+    }
+}

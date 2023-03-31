@@ -10,9 +10,7 @@
 #include "ResLayer.h"
 #include "LNLayer.h"
 #include "NeuralNetwork.h"
-#include "../mpc/RSS.h"
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
 #include "../util/functors.h"
 #include <math.h>       /* log2 */
 #include <sys/types.h>
@@ -506,17 +504,8 @@ void NeuralNetwork<T, Share>::printLoss(std::vector<double> &labels, bool cross_
 }
 */
 
-template class NeuralNetwork<uint32_t, RSS>;
-template class NeuralNetwork<uint64_t, RSS>;
-
 template class NeuralNetwork<uint32_t, TPC>;
 template class NeuralNetwork<uint64_t, TPC>;
-
-template class NeuralNetwork<uint32_t, FPC>;
-template class NeuralNetwork<uint64_t, FPC>;
-
-template class NeuralNetwork<uint32_t, OPC>;
-template class NeuralNetwork<uint64_t, OPC>;
 
 template class NeuralNetwork<uint32_t, GFO>;
 template class NeuralNetwork<uint64_t, GFO>;

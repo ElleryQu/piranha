@@ -23,12 +23,11 @@
 #include <cutlass/util/tensor_view_io.h>
 
 #include "../globals.h"
-#include "../mpc/RSS.h"
+
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
 #include "../mpc/GForce.h"
 #include "../mpc/Rogue.h"
+
 #include "../nn/LNConfig.h"
 #include "../nn/LNLayer.h"
 #include "../nn/CNNConfig.h"
@@ -45,6 +44,7 @@
 #include "../nn/ReLULayer.h"
 #include "../nn/ResLayerConfig.h"
 #include "../nn/ResLayer.h"
+
 #include "../util/Profiler.h"
 #include "../util/util.cuh"
 #include "../gpu/bitwise.cuh"

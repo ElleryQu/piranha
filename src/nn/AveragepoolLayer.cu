@@ -1,10 +1,7 @@
 
 #include "AveragepoolLayer.h"
 
-#include "../mpc/RSS.h"
 #include "../mpc/TPC.h"
-#include "../mpc/FPC.h"
-#include "../mpc/OPC.h"
 
 #include <numeric>
 
@@ -131,17 +128,8 @@ void AveragepoolLayer<T, Share>::backward(const Share<T> &delta, const Share<T> 
     this->layer_profiler.accumulate("averagepool-backward");
 }
 
-template class AveragepoolLayer<uint32_t, RSS>;
-template class AveragepoolLayer<uint64_t, RSS>;
-
 template class AveragepoolLayer<uint32_t, TPC>;
 template class AveragepoolLayer<uint64_t, TPC>;
-
-template class AveragepoolLayer<uint32_t, FPC>;
-template class AveragepoolLayer<uint64_t, FPC>;
-
-template class AveragepoolLayer<uint32_t, OPC>;
-template class AveragepoolLayer<uint64_t, OPC>;
 
 template class AveragepoolLayer<uint32_t, GFO>;
 template class AveragepoolLayer<uint64_t, GFO>;
