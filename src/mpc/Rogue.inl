@@ -504,17 +504,10 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
     // temp.fill(0);
     // temp += *compare_result.getShare(0);
     if (partyNum == ROG<uint32_t>::SERVER) {
-        ur *= static_cast<T>(-1);
+        ur *= static_cast<U>(-1);
 
         // // bit2A.
         // // placeholder for client's input.
-        // ROG<U> another_input(size); 
-        // another_input.fill(0);
-        // compare_result.offline_known = true;
-        // another_input *= compare_result;
-        // another_input *= static_cast<U>(-2);
-        // another_input += temp;
-        // result += another_input;
 
         DeviceData<U> temp(size);
         temp.fill(0);
@@ -663,7 +656,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         bi_xor %= p;
         ROG<U> &prefix_xor = another_input;
         prefix_xor *= 3;
-        prefix_xor %= 3;
+        prefix_xor %= p;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
