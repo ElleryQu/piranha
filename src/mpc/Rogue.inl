@@ -1153,16 +1153,14 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
     // TODO: offline.
     ROG<T> dbdx(size), tb(size), db(size);
     MTPC<T> bang(size);
-    dbdx.zero(), bang.zero(), result.zero();
+    dbdx.zero(), bang.zero(), result.zero(), db.zero();
     thrust::copy(b.getShare(0)->begin(), 
         b.getShare(0)->end(),  
         tb.getShare(0)->begin());
     if (partyNum == ROG<uint32_t>::SERVER) {
         *bang.getShare(1) += *tb.getShare(0);
     }
-    thrust::copy(bang.getShare(1)->begin(), 
-        bang.getShare(1)->end(),
-        db.getShare(0)->begin());
+    *db.getShare(0) += *bang.getShare(1);
 
     // online.
     *bang.getShare(0) ^= *bang.getShare(1);
