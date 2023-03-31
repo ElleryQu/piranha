@@ -153,13 +153,13 @@ void convolution(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         int Din, int Dout, int stride, int padding, int truncation);
 
 // TODO change into 2 arguments with subtraction, pointer NULL indicates compare w/ 0
-template<typename T, typename U=uint32_t, typename I, typename I2>
+template<typename T, typename U=uint64_t, typename I, typename I2>
 void dReLU(const GFO<T, I> &input, GFO<T, I2> &result);
  
-template<typename T, typename U=uint32_t, typename I, typename I2, typename I3>
+template<typename T, typename U=uint64_t, typename I, typename I2, typename I3>
 void ReLU(const GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult);
 
-template<typename T, typename U=uint32_t, typename I, typename I2, typename I3>
+template<typename T, typename U=uint64_t, typename I, typename I2, typename I3>
 void maxpool(GFO<T, I> &input, GFO<T, I2> &result, GFO<T, I3> &dresult, int k);
 
 #include "GForce.inl"

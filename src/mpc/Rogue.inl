@@ -621,7 +621,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         bi_xor %= p;
         ROG<U> &prefix_xor = another_input;
         prefix_xor *= 3;
-        prefix_xor %= 3;
+        prefix_xor %= p;
         // note the output of bitexpand is small endian.
         thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
         thrust::counting_iterator<U> key_count_iter(0);
