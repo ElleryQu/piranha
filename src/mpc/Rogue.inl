@@ -1167,6 +1167,7 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
     if (partyNum == ROG<uint32_t>::CLIENT) {
         *bang.getShare(0) ^= *bang.getShare(1);
         *bang.getShare(0) ^= *tb.getShare(0);
+        comm_profiler.start();
         bang.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         
         // while transmiting, lets compute...
@@ -1192,6 +1193,7 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         bang.getShare(0)->join();
         dbdx.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         dbdx.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
     }
     else if (partyNum == ROG<uint32_t>::SERVER) {
         *db.getShare(0) *= *x.getShare(0);
@@ -1202,6 +1204,7 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *bang.getShare(1) += *x.getShare(0);
         *bang.getShare(1) -= *x.getShare(1);
 
+        comm_profiler.start();
         bang.getShare(0)->receive(ROG<T>::otherParty(partyNum));
         bang.getShare(0)->join();
         result.getShare(0)->receive(ROG<T>::otherParty(partyNum));
@@ -1217,6 +1220,7 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *bang.getShare(0) *= *bang.getShare(1);
 
         result.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
         *result.getShare(0) += *bang.getShare(0);
         *result.getShare(0) += *dbdx.getShare(0);
     }
@@ -1672,11 +1676,15 @@ void reshare(const ROG<T,I> &in, MTPC<T, I2> &out){
         *out.getShare(0) += *in.getShare(0);
         *out.getShare(0) += *out.getShare(1);
 
+        comm_profiler.start();
         out.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         out.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
     }
     else if (partyNum == ROG<T>::CLIENT){
+        comm_profiler.start();
         out.getShare(0)->receive(ROG<T>::otherParty(partyNum));
         out.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
     }
 }
