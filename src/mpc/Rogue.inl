@@ -304,7 +304,7 @@ ROGBase<T, I> &ROGBase<T, I>::operator*=(const ROGBase<T, I2> &rhs) {
         // CLIENT: r^C.
         DeviceData<T> r(size);
         r.fill(0);
-        if (partyNum == CLIENT) {
+        if (partyNum == CLIENT) {   
             *this->getShare(0) -= r;
             comm_profiler.start();
             this->getShare(0)->transmit(ROG<T>::otherParty(partyNum));
@@ -1163,11 +1163,13 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
     *db.getShare(0) += *bang.getShare(1);
 
     // online.
-    *bang.getShare(0) ^= *bang.getShare(1);
-    *bang.getShare(0) ^= *tb.getShare(0);
-    
     // Compute D_b and [\zeta]^C. 
     if (partyNum == ROG<uint32_t>::CLIENT) {
+        *bang.getShare(0) ^= *bang.getShare(1);
+        *bang.getShare(0) ^= *tb.getShare(0);
+        bang.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
+        
+        // while transmiting, lets compute...
         *db.getShare(0) *= *x.getShare(0);
         *db.getShare(0) -= *dbdx.getShare(0);
 
@@ -1187,34 +1189,36 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *db.getShare(0) *= *x.getShare(1);
         *dbdx.getShare(0) -= *db.getShare(0);
 
-        bang.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         bang.getShare(0)->join();
         dbdx.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         dbdx.getShare(0)->join();
     }
     else if (partyNum == ROG<uint32_t>::SERVER) {
-        bang.getShare(0)->receive(ROG<T>::otherParty(partyNum));
-        bang.getShare(0)->join();
-        result.getShare(0)->receive(ROG<T>::otherParty(partyNum));
-        result.getShare(0)->join();
-
         *db.getShare(0) *= *x.getShare(0);
         *db.getShare(0) -= *dbdx.getShare(0);
 
+        // as bang.getShare(1) is useless, we can use it to store something.
+        bang.getShare(1)->zero();
+        *bang.getShare(1) += *x.getShare(0);
+        *bang.getShare(1) -= *x.getShare(1);
+
+        bang.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+        bang.getShare(0)->join();
+        result.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+
+        // while receiving. lets compute...
         // now, dbdx holds (1-2D_b).
         dbdx.getShare(0)->zero();
         *dbdx.getShare(0) += *bang.getShare(0);
         *dbdx.getShare(0) *= static_cast<T>(-2);
         *dbdx.getShare(0) += 1;
-        *db.getShare(0) *= *dbdx.getShare(0);
+        *dbdx.getShare(0) *= *db.getShare(0);
 
-        dbdx.getShare(0)->zero();
-        *dbdx.getShare(0) += *x.getShare(0);
-        *dbdx.getShare(0) -= *x.getShare(1);
-        *bang.getShare(0) *= *dbdx.getShare(0);
+        *bang.getShare(0) *= *bang.getShare(1);
 
+        result.getShare(0)->join();
         *result.getShare(0) += *bang.getShare(0);
-        *result.getShare(0) += *db.getShare(0);
+        *result.getShare(0) += *dbdx.getShare(0);
     }
 }
 
