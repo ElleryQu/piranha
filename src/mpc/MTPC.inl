@@ -74,12 +74,16 @@ void MTPCBase<T, I>::setPublic(std::vector<double> &v) {
         case SERVER:
             thrust::copy(shifted_vals.begin(), shifted_vals.end(), shareD->begin());
             *shareD += *shared;
+            comm_profiler.start();
             shareD->transmit(MTPC<T>::otherParty(partyNum));
             shareD->join();
+            comm_profiler.accumulate("comm-time");
             break;
         case CLIENT:
+            comm_profiler.start();
             shareD->receive(MTPC<T>::otherParty(partyNum));
             shareD->join();
+            comm_profiler.accumulate("comm-time");
             break;
     }
 };
@@ -235,10 +239,12 @@ MTPCBase<T, I> &MTPCBase<T, I>::operator*=(const MTPCBase<T, I2> &rhs) {
     *this->getShare(0) += *dxy.getShare(0);
     *this->getShare(0) += *dz.getShare(0);
 
+    comm_profiler.start();
     this->getShare(0)->transmit(MTPC<T>::otherParty(partyNum));
     this->getShare(1)->receive(MTPC<T>::otherParty(partyNum));
     this->getShare(0)->join();
     this->getShare(1)->join();
+    comm_profiler.accumulate("comm-time");
 
     *this->getShare(0) += *this->getShare(1);
     this->getShare(1)->zero();

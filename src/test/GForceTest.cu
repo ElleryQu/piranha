@@ -524,6 +524,7 @@ TYPED_TEST(RogueTest, RELU) {
         -2, -3, 4, 3, 3.5, 1, -1.5, -1
     };
 
+    input.offline_known = true;
     Share result(input.size());
     //Change Share to TPC<uint8_t>
     Share dresult(input.size());

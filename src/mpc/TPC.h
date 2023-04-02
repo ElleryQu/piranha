@@ -36,7 +36,7 @@ class TPCBase {
         typedef T share_type;
         typedef I iterator_type;
         // TODO: silly.
-        bool offline_known;
+        bool offline_known = false;
 
         static const std::string& getProt();
 

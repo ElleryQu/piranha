@@ -282,14 +282,18 @@ ROGBase<T, I> &ROGBase<T, I>::operator*=(const ROGBase<T, I2> &rhs) {
 
         temp.zero();
         temp += f;
-        temp -= *y.getShare(0);
         temp *= e;
         *this += temp;
 
         temp.zero();
+        temp -= *y.getShare(0);
+        temp *= e;
+        *this->getShare(0) += temp;
+
+        temp.zero();
         temp -= *x.getShare(0);
         temp *= f;
-        *this += temp;
+        *this->getShare(0) += temp;
     } 
     else 
     {

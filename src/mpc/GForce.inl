@@ -283,28 +283,34 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         DeviceData<T> e(size), f(size), temp(size);
 
         *x.getShare(0) += *this->getShare(0); 
+        *x.getShare(0) %= prime;
         *y.getShare(0) += *rhs.getShare(0);
+        *y.getShare(0) %= prime;
         reconstruct(x, e); reconstruct(y, f);
         *x.getShare(0) -= *this->getShare(0);
+        *x.getShare(0) %= prime;
         *y.getShare(0) -= *rhs.getShare(0);
+        *y.getShare(0) %= prime;
         
         this->zero();
         *this += z;
 
         temp.zero();
         temp += f;
-        temp -= *y.getShare(0);
-        temp %= prime;
         temp *= e;
-        temp %= prime;
         *this += temp;
 
         temp.zero();
-        temp -= *x.getShare(0);
+        temp -= *y.getShare(0);
+        temp *= e;
         temp %= prime;
+        *this->getShare(0) += temp;
+
+        temp.zero();
+        temp -= *x.getShare(0);
         temp *= f;
         temp %= prime;
-        *this += temp;
+        *this->getShare(0) += temp;
         *this %= prime;
     } 
     else 
@@ -404,21 +410,21 @@ int GFOBase<T, I>::numShares() {
 }
 
 template<typename T, typename I>
-GFO<T, I>::GFO(DeviceData<T, I> *a, T prime_) : GFOBase<T, I>(a, prime_) {}
+GFO<T, I>::GFO(DeviceData<T, I> *a, T prime_) : GFOBase<T, I>(a, false, prime_) {}
 
 template<typename T>
 GFO<T, BufferIterator<T> >::GFO(DeviceData<T> *a, T prime_) :
-    GFOBase<T, BufferIterator<T> >(a, prime_) {}
+    GFOBase<T, BufferIterator<T> >(a, false, prime_) {}
 
 template<typename T>
 GFO<T, BufferIterator<T> >::GFO(size_t n, T prime_) :
     _shareA(n),
-    GFOBase<T, BufferIterator<T> >(&_shareA, prime_) {}
+    GFOBase<T, BufferIterator<T> >(&_shareA, false, prime_) {}
 
 template<typename T>
 GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertToFixedPoint, T prime_) :
     _shareA(il.size()),
-    GFOBase<T, BufferIterator<T> >(&_shareA, prime_) {
+    GFOBase<T, BufferIterator<T> >(&_shareA, false, prime_) {
 
     typedef typename std::make_signed<T>::type S;
     std::vector<T> shifted_vals;
@@ -782,8 +788,8 @@ void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
 template<typename T, typename I, typename I2>
 void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
 
-    comm_profiler.start();
     auto prime = in.prime;
+    comm_profiler.start();
 
     // 1 - send shareA to next party
     in.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
