@@ -44,7 +44,7 @@ void FCLayer<T, Share>::initialize(int layerNum, int seed) {
     biases.setPublic(bias_vals);
 
     // TODO: if Share in inference_only_protocol_list
-    if (typeid(Share<T>)==typeid(GFO<T>)) {
+    if (typeid(Share<T>)==typeid(GFO<T>) || typeid(Share<T>)==typeid(ROG<T>)) {
         weights.offline_known = true;
     }
 } 

@@ -518,7 +518,7 @@ template<typename T, typename U, typename I, typename I2>
 void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
     // TODO: int8 or int4 support.  uint8 √
     // notice: uint8 is enough to hold prexor.
-    size_t T_bits_count = sizeof(T) * 8;
+    size_t T_bits_count = PC_BITS;
     size_t size = input.size();
 
     // Commom variable.

@@ -336,6 +336,7 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
             total_comm_rx_mb += ((double)comm_profiler.get_comm_rx_bytes()) / 1024.0 / 1024.0;
 
             if (piranha_config["inference_only"]) {
+                total_time_s += toplevel_profiler.get_elapsed_all() / 1000.0;
                 continue;
             }
 
@@ -359,7 +360,6 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
             }
 
             total_time_s += toplevel_profiler.get_elapsed_all() / 1000.0;
-
             
             if (piranha_config["iteration_snapshots"]) {
                 std::string snapshot_path = "output/"+run_name+"-epoch-"+std::to_string(e)+"-iteration-"+std::to_string(i);

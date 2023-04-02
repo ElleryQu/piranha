@@ -9,10 +9,10 @@
     "party_users": ["alice", "bob"],
 
     "_desc_run_unit_tests": "Run unit tests",
-    "run_unit_tests": true,
+    "run_unit_tests": false,
 
     "_desc_unit_test_only": "Only run unit tests, do not try to run any full Piranha applications",
-    "unit_test_only": true,
+    "unit_test_only": false,
 
     "_desc_debug_print": "Show debug output",
     "debug_print": false,

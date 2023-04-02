@@ -21,6 +21,7 @@
 #endif
 #define GFORCE_BOUND (uint64_t) 1 << 20
 #define ROGUE_BOUND (uint64_t) 1 << 20
+#define PC_BITS 32
 
 // NN globals
 #ifndef RELU_BIT_TYPE

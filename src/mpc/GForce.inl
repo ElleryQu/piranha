@@ -617,7 +617,7 @@ template<typename T, typename U, typename I, typename I2>
 void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
     // TODO: int8 or int4 support.  uint8 √
     // notice: uint8 is enough to hold prexor.
-    size_t T_bits_count = sizeof(T) * 8;
+    size_t T_bits_count = PC_BITS;
     size_t size = input.size();
 
     // Commom variable.
@@ -1187,9 +1187,9 @@ void localWgrad(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
         DeviceData<T> r(A.size());
         r.fill(0);
         if (partyNum == GFO<uint32_t>::CLIENT) {
-            comm_profiler.start();
             r -= *A.getShare(0);
             r *= static_cast<T>(-1);
+            comm_profiler.start();
             r.transmit(GFO<T>::otherParty(partyNum));
             r.join();
             comm_profiler.accumulate("comm-time");
