@@ -530,7 +530,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
 
     // MILL step 1: bit expand. because r is known to SERVER, so the bit expand of r is trival.
     // TODO: int8 support.
-    gpu::bitexpand(input.getShare(0), &b);
+    gpu::bitexpand(input.getShare(0), &b, PC_BITS);
     
     if (partyNum == ROG<uint32_t>::SERVER) {
         // MILL step 2: SERVER sample deltas, compute alpha = 1 - 2*deltas. 
@@ -1421,11 +1421,11 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
         temp.zero();
 
         gpu::gemm(M, N, K, &e, transpose_a, y.getShare(0), transpose_b, &temp, transpose_c);
-        c -= temp;
+        *c.getShare(0) -= temp;
         temp.zero();
 
         gpu::gemm(M, N, K, x.getShare(0), transpose_a, &f, transpose_b, &temp, transpose_c);
-        c -= temp;  
+        *c.getShare(0) -= temp;  
     }
     else 
     {

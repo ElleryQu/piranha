@@ -9,7 +9,7 @@
     "party_users": ["alice", "bob"],
 
     "_desc_run_unit_tests": "Run unit tests",
-    "run_unit_tests": false,
+    "run_unit_tests": true,
 
     "_desc_unit_test_only": "Only run unit tests, do not try to run any full Piranha applications",
     "unit_test_only": false,
@@ -24,10 +24,10 @@
     "debug_sqrt": false,
 
     "_desc_run_name": "Descriptive name for run, used to name log files with something useful",
-    "run_name": "gforce-inference",
+    "run_name": "vgg16-cifar10-rogue",
 
     "_desc_network": "Path to NN architecture to use for the run",
-    "network": "files/models/secureml-norelu.json",
+    "network": "files/models/vgg16-cifar10.json",
 
     "_desc_custom_epochs": "Enable custom number of epochs. Otherwise set by size of learning rate schedule",
     "custom_epochs": true,
@@ -51,10 +51,10 @@
     "nn_seed": 3407,
 
     "_desc_preload": "Preload weights from a snapshot directory instead of training from scratch",
-    "preload": true,
+    "preload": false,
 
     "_desc_preload_path": "Directory path from which to preload network weights",
-    "preload_path": "output/gforce-inference-epoch-1",
+    "preload_path": "output/vgg16-cifar10-rogue",
 
     "_desc_lr_schedule": "Learning rate schedule, in negative powers of 2 (e.g. 3 -> learning rate of 2^-3). Assumes that the number of LR exponents matches the desired number of training epochs",
     "lr_schedule": [3, 3, 3, 4, 4, 5, 6, 7, 8, 9],
@@ -63,7 +63,7 @@
     "test_only": false,
 
     "_desc_inference_only": "Only run inference (forward pass), not backward pass training",
-    "inference_only": true,
+    "inference_only": false,
 
     "_desc_no_test": "Do not run testing after training epochs",
     "no_test": false,

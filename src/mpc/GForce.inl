@@ -629,7 +629,7 @@ void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
 
     // MILL step 1: bit expand. because r is known to SERVER, so the bit expand of r is trival.
     // TODO: int8 support.
-    gpu::bitexpand(input.getShare(0), &b);
+    gpu::bitexpand(input.getShare(0), &b, PC_BITS);
     
     if (partyNum == GFO<uint32_t>::SERVER) {
         // MILL step 2: SERVER sample deltas, compute alpha = 1 - 2*deltas. 

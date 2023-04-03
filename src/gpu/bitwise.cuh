@@ -9,11 +9,11 @@ namespace kernel {
 
 // 小端模式。
 template<typename T, typename U> 
-__global__ void bitexpand(T *a, size_t nVals, U *b) {
+__global__ void bitexpand(T *a, size_t nVals, U *b, int expand_bits=sizeof(T)*8) {
 
     int VAL_IDX = blockIdx.x*blockDim.x+threadIdx.x;
     int BIT_IDX = blockIdx.y*blockDim.y+threadIdx.y;
-    int nBits = sizeof(T) * 8;
+    int nBits = expand_bits;
 
     if (VAL_IDX <= nVals && BIT_IDX < nBits) {
         T val = ((a[VAL_IDX] >> BIT_IDX) & 1);
@@ -110,10 +110,10 @@ __global__ void expandCompare(T *b, T *invB, T *expanded,
 namespace gpu {
 
 template<typename T, typename I, typename U, typename I2>
-void bitexpand(DeviceData<T, I> *a, DeviceData<U, I2> *b) {
+void bitexpand(DeviceData<T, I> *a, DeviceData<U, I2> *b, int expand_bits = sizeof(T)*8) {
 
     int cols = a->size();
-    int rows = sizeof(T) * 8;
+    int rows = expand_bits;
 
     dim3 threadsPerBlock(cols, rows);
     dim3 blocksPerGrid(1, 1);
@@ -131,7 +131,8 @@ void bitexpand(DeviceData<T, I> *a, DeviceData<U, I2> *b) {
     kernel::bitexpand<<<blocksPerGrid,threadsPerBlock>>>(
         thrust::raw_pointer_cast(&a->begin()[0]),
         cols,
-        thrust::raw_pointer_cast(&b->begin()[0])
+        thrust::raw_pointer_cast(&b->begin()[0]),
+        expand_bits
     );
 
     cudaThreadSynchronize();
