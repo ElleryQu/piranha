@@ -124,6 +124,7 @@ void AveragepoolLayer<T, Share>::backward(const Share<T> &delta, const Share<T> 
 
     dividePublic(deltas, (T)(conf.poolSize * conf.poolSize));
 
+
     averagepool_profiler.accumulate("averagepool-backward");
     this->layer_profiler.accumulate("averagepool-backward");
 }

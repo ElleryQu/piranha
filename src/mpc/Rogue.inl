@@ -573,7 +573,7 @@ void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
         gpu::vectorExpand(&key, &key_expand, T_bits_count);
         thrust::inclusive_scan_by_key(key_expand.begin(), key_expand.end(), reverse_prefix_xor_iter, reverse_prefix_xor_iter);
         b += *prefix_xor.getShare(0);
-        b += delta;
+        b += alpha;
         b %= p;
 
         // MILL step 4: computes b_{-1}.

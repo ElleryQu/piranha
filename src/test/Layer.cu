@@ -5,7 +5,7 @@
 #include "../util/functors.h"
 
 #ifndef LAYER_TEST_SHARE
-#define LAYER_TEST_SHARE TPC
+#define LAYER_TEST_SHARE ROG
 #endif
 
 template<typename T>

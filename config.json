@@ -9,7 +9,7 @@
     "party_users": ["alice", "bob"],
 
     "_desc_run_unit_tests": "Run unit tests",
-    "run_unit_tests": true,
+    "run_unit_tests": false,
 
     "_desc_unit_test_only": "Only run unit tests, do not try to run any full Piranha applications",
     "unit_test_only": false,
@@ -24,16 +24,16 @@
     "debug_sqrt": false,
 
     "_desc_run_name": "Descriptive name for run, used to name log files with something useful",
-    "run_name": "vgg16-cifar10-rogue",
+    "run_name": "test-run",
 
     "_desc_network": "Path to NN architecture to use for the run",
-    "network": "files/models/vgg16-cifar10.json",
+    "network": "files/models/test-net.json",
 
     "_desc_custom_epochs": "Enable custom number of epochs. Otherwise set by size of learning rate schedule",
     "custom_epochs": true,
 
     "_desc_custom_epoch_count": "Number of epochs to train for, if custom_epochs is set",
-    "custom_epoch_count": 1,
+    "custom_epoch_count": 5,
 
     "_desc_custom_iterations": "Enable custom number of iterations. Otherwise set by training dataset size.",
     "custom_iterations": false,
@@ -42,7 +42,7 @@
     "custom_iteration_count": 0,
 
     "_desc_custom_batch_size": "Enable custom batch size. Otherwise set by architecture configuration.",
-    "custom_batch_size": true,
+    "custom_batch_size": false,
 
     "_desc_custom_batch_size_count": "Desired custom batch size",
     "custom_batch_size_count": 128,
@@ -54,7 +54,7 @@
     "preload": false,
 
     "_desc_preload_path": "Directory path from which to preload network weights",
-    "preload_path": "output/vgg16-cifar10-rogue",
+    "preload_path": "output/smlnorelu-mnist-rogue",
 
     "_desc_lr_schedule": "Learning rate schedule, in negative powers of 2 (e.g. 3 -> learning rate of 2^-3). Assumes that the number of LR exponents matches the desired number of training epochs",
     "lr_schedule": [3, 3, 3, 4, 4, 5, 6, 7, 8, 9],

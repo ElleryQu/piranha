@@ -381,9 +381,11 @@ template<typename T, typename I>
 void dividePublic(TPC<T, I> &a, T denominator) {
 
     TPC<T> r(a.size()), rPrime(a.size());
+
     PrecomputeObject.getDividedShares<T, TPC<T> >(r, rPrime, denominator, a.size()); 
+
     a -= rPrime;
-    
+
     DeviceData<T> reconstructed(a.size());
     reconstruct(a, reconstructed);
     reconstructed /= denominator;
