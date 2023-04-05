@@ -504,6 +504,9 @@ void NeuralNetwork<T, Share>::printLoss(std::vector<double> &labels, bool cross_
 }
 */
 
+template class NeuralNetwork<uint32_t, OPC>;
+template class NeuralNetwork<uint64_t, OPC>;
+
 template class NeuralNetwork<uint32_t, TPC>;
 template class NeuralNetwork<uint64_t, TPC>;
 

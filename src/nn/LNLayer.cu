@@ -284,6 +284,9 @@ void LNLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwardI
     debug_profiler.accumulate("bn-backward");
 }
 
+template class LNLayer<uint32_t, OPC>;
+template class LNLayer<uint64_t, OPC>;
+
 template class LNLayer<uint32_t, TPC>;
 template class LNLayer<uint64_t, TPC>;
 

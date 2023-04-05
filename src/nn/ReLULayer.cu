@@ -125,6 +125,9 @@ void ReLULayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwar
     //return deltas;
 }
 
+template class ReLULayer<uint32_t, OPC>;
+template class ReLULayer<uint64_t, OPC>;
+
 template class ReLULayer<uint32_t, TPC>;
 template class ReLULayer<uint64_t, TPC>;
 

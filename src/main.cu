@@ -16,6 +16,7 @@
 
 #include "mpc/AESObject.h"
 #include "mpc/Precompute.h"
+#include "mpc/OPC.h"
 #include "mpc/TPC.h"
 #include "mpc/GForce.h"
 #include "mpc/Rogue.h"
@@ -122,6 +123,9 @@ int main(int argc, char** argv) {
     std::cout << "config network: " << piranha_config["network"] << std::endl;
     loadModel(&nn_config, piranha_config["network"]);
 
+#ifdef ONEPC
+    NeuralNetwork<uint64_t, OPC> net(&nn_config, piranha_config["nn_seed"]);
+#else
 #ifdef TWOPC
     NeuralNetwork<uint64_t, TPC> net(&nn_config, piranha_config["nn_seed"]);
 #else
@@ -130,6 +134,7 @@ int main(int argc, char** argv) {
 #else
 #ifdef ROGUE
     NeuralNetwork<uint64_t, ROG> net(&nn_config, piranha_config["nn_seed"]);
+#endif
 #endif
 #endif
 #endif

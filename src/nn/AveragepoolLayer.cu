@@ -129,6 +129,9 @@ void AveragepoolLayer<T, Share>::backward(const Share<T> &delta, const Share<T> 
     this->layer_profiler.accumulate("averagepool-backward");
 }
 
+template class AveragepoolLayer<uint32_t, OPC>;
+template class AveragepoolLayer<uint64_t, OPC>;
+
 template class AveragepoolLayer<uint32_t, TPC>;
 template class AveragepoolLayer<uint64_t, TPC>;
 

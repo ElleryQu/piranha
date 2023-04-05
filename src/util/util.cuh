@@ -11,6 +11,7 @@
 
 #include "../gpu/DeviceData.h"
 #include "../globals.h"
+#include "../mpc/OPC.h"
 #include "../mpc/TPC.h"
 #include "../mpc/GForce.h"
 #include "../mpc/Rogue.h"

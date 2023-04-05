@@ -326,6 +326,9 @@ std::vector<Layer<T, Share> *> *ResLayer<T, Share>::getShortcut(int idx) {
     return (idx >= this->shortcuts.size()) ? NULL : this->shortcuts[idx];
 }
 
+template class ResLayer<uint32_t, OPC>;
+template class ResLayer<uint64_t, OPC>;
+
 template class ResLayer<uint32_t, TPC>;
 template class ResLayer<uint64_t, TPC>;
 

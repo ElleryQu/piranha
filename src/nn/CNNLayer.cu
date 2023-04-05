@@ -228,6 +228,9 @@ void CNNLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forward
     */
 }
 
+template class CNNLayer<uint32_t, OPC>;
+template class CNNLayer<uint64_t, OPC>;
+
 template class CNNLayer<uint32_t, TPC>;
 template class CNNLayer<uint64_t, TPC>;
 

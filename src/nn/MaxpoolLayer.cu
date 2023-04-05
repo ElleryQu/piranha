@@ -179,6 +179,9 @@ void MaxpoolLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &for
     this->layer_profiler.accumulate("maxpool-backward");
 }
 
+template class MaxpoolLayer<uint32_t, OPC>;
+template class MaxpoolLayer<uint64_t, OPC>;
+
 template class MaxpoolLayer<uint32_t, TPC>;
 template class MaxpoolLayer<uint64_t, TPC>;
 

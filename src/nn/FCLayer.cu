@@ -225,6 +225,9 @@ void FCLayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwardI
     this->layer_profiler.accumulate("fc-backward");
 }
 
+template class FCLayer<uint32_t, OPC>;
+template class FCLayer<uint64_t, OPC>;
+
 template class FCLayer<uint32_t, TPC>;
 template class FCLayer<uint64_t, TPC>;
 
