@@ -22,8 +22,8 @@
 #include "../util/functors.h"
 #include "../util/Profiler.h"
 
-extern Precompute PrecomputeObject;
 extern Profiler func_profiler;
+extern Precompute PrecomputeObject;
 
 // Functors
 

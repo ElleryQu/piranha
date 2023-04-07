@@ -17,11 +17,12 @@
 
 // MPC globals
 #ifndef FLOAT_PRECISION
-#define FLOAT_PRECISION 20
+#define FLOAT_PRECISION 12
 #endif
 #define GFORCE_BOUND (uint64_t) 1 << 20
 #define ROGUE_BOUND (uint64_t) 1 << 20
 #define PC_BITS 32
+#define ENABLE_OFFLINE_RANDOMNESS true
 
 // NN globals
 #ifndef RELU_BIT_TYPE

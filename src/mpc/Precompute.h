@@ -1,8 +1,13 @@
-
 #pragma once
 
-#include "../gpu/DeviceData.h"
 #include "../globals.h"
+
+#include "../mpc/AESObject.h"
+
+#include "../gpu/DeviceData.h"
+#include "../gpu/gemm.cuh"
+
+extern std::vector<AESObject*> aes_objects;
 
 class Precompute
 {
@@ -72,21 +77,8 @@ class Precompute
 
         template<typename T, typename Share>
         void getMatrixBeaverTriple(Share &x, Share &y, Share &z,
-                size_t a_rows, size_t a_cols, size_t b_rows, size_t b_cols,
-                bool transpose_a, bool transpose_b) {
-
-            // TODO use random numbers
-            size_t rows = transpose_a ? a_cols : a_rows;
-
-            size_t shared = transpose_a ? a_rows : a_cols;
-            assert(shared == (transpose_b ? b_cols : b_rows));
-
-            size_t cols = transpose_b ? b_rows : b_cols;
-
-            x.fill(1);
-            y.fill(1);
-            z.fill(shared);
-        }
+            int a_rows, int a_cols, int b_rows, int b_cols,
+            bool transpose_a, bool transpose_b);
 
         template<typename T, typename Share>
         void getBooleanBeaverTriples(Share &x, Share &y, Share &z) {
@@ -97,12 +89,7 @@ class Precompute
         }
 
         template<typename T, typename Share>
-        void getBeaverTriples(Share &x, Share &y, Share &z) {
-
-            x.fill(1);
-            y.fill(1);
-            z.fill(1);
-        }
+        void getBeaverTriples(Share &x, Share &y, Share &z);
 
         // Currently, r = 3 and rPrime = 3 * 2^d
         template<typename T, typename Share>
@@ -134,3 +121,4 @@ class Precompute
         }
 };
 
+#include "Precompute.inl"  

@@ -24,10 +24,6 @@
 
 #include "../globals.h"
 
-#include "../mpc/TPC.h"
-#include "../mpc/GForce.h"
-#include "../mpc/Rogue.h"
-
 #include "../nn/LNConfig.h"
 #include "../nn/LNLayer.h"
 #include "../nn/CNNConfig.h"

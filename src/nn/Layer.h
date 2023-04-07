@@ -3,7 +3,7 @@
 
 #include "../globals.h"
 #include "../util/Profiler.h"
-#include "../mpc/TPC.h"
+#include "../mpc/Protocols.h"
 
 #include <numeric>
 

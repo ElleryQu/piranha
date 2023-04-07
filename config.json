@@ -2,6 +2,9 @@
     "_desc_num_parties": "Number of parties involved in the MPC computation. Should match compiled application protocol.",
     "num_parties": 2,
 
+    "_desc_AES_key_file": "AES key file location",
+    "AES_key_file": ["files/aeskey1", "files/aeskey2"],
+
     "_desc_party_ips": "IP addresses of each party, ordered by party number",
     "party_ips": ["127.0.0.1", "127.0.0.1"],
 

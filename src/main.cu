@@ -8,24 +8,16 @@
 #include "test/unitTests.h"
 #include "util/Profiler.h"
 #include "util/model.h"
-#include "nn/MaxpoolLayer.h"
-#include "nn/ReLULayer.h"
+// #include "nn/MaxpoolLayer.h"
+// #include "nn/ReLULayer.h"
 #include "util/util.cuh"
 #include "../ext/cxxopts.hpp"
 #include <json.hpp>
 
-#include "mpc/AESObject.h"
-#include "mpc/Precompute.h"
-#include "mpc/OPC.h"
-#include "mpc/TPC.h"
-#include "mpc/GForce.h"
-#include "mpc/Rogue.h"
+#include "mpc/Protocols.h"
 
 int partyNum;
-std::vector<AESObject*> aes_objects;
-//AESObject* aes_indep;
-//AESObject* aes_next;
-//AESObject* aes_prev;
+std::vector<AESObject *> aes_objects;
 Precompute PrecomputeObject;
 
 extern std::string *addrs;
@@ -97,15 +89,16 @@ int main(int argc, char** argv) {
 
     synchronize(10000, piranha_config["num_parties"]); // wait for everyone to show up :)
     
+    aes_objects.resize(piranha_config["num_parties"]);
     for (size_t i = 0; i < piranha_config["num_parties"]; i++) {
         // --------------> AES_TODO
         //Get AES strings from file and create vector of AESObjects
         //options.aes_file;
-        //aes_objects[i] = new AESObject(options.)
+        std::string str = piranha_config["AES_key_file"][i].dump();
+        str.erase(str.begin()), str.erase(str.end()-1);
+        std::cout << const_cast<char *>(str.c_str()) << std::endl;
+        aes_objects[i] = new AESObject(const_cast<char *>(str.c_str()));
     }
-    //aes_indep = new AESObject(options.aes_indep_file);
-    //aes_next = new AESObject(options.aes_next_file);
-    //aes_prev = new AESObject(options.aes_prev_file);
 
     // Unit tests
     if (piranha_config["run_unit_tests"]) {
@@ -188,15 +181,11 @@ int main(int argc, char** argv) {
         train(&net, &nn_config, piranha_config["run_name"], train_data_file, train_label_file, test_data_file, test_label_file, lr_schedule);
     }
 
-    //delete aes_indep;
-    //delete aes_next;
-    //delete aes_prev;
-
     // ----------> AES_TODO Delete AES objects
-    //for (int i = 0; i < aes_objects.size(); ++i) {
-    //    delete aes_objects[i]; // Calls ~AESObject and deallocates *aes_objects[i]
-    //}
-    //aes_objects.clear();
+    for (int i = 0; i < aes_objects.size(); ++i) {
+       delete aes_objects[i]; // Calls ~AESObject and deallocates *aes_objects[i]
+    }
+    aes_objects.clear();
 
     deleteObjects();
 

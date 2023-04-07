@@ -19,9 +19,10 @@
 #include "../gpu/gemm.cuh"
 #include "../gpu/StridedRange.cuh"
 #include "../globals.h"
-#include "Precompute.h"
 #include "../util/functors.h"
 #include "../util/Profiler.h"
+
+#include "Precompute.h"
 
 extern Precompute PrecomputeObject;
 extern Profiler comm_profiler;
@@ -254,11 +255,29 @@ TPCBase<T, I> &TPCBase<T, I>::operator*=(const TPCBase<T, I2> &rhs) {
     PrecomputeObject.getBeaverTriples<T, TPC<T> >(x, y, z);
     DeviceData<T> e(size), f(size), temp(size);
 
+    std::vector<T> _(x.size());
+    thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
+    std::cout << "TPC, [a] = " << _[1] << std::endl;
+    thrust::copy(rhs.getShare(0)->begin(), rhs.getShare(0)->end(), _.begin());
+    std::cout << "TPC, [b] = " << _[1] << std::endl;
+
     *x.getShare(0) += *this->getShare(0); 
     *y.getShare(0) += *rhs.getShare(0);
     reconstruct(x, e); reconstruct(y, f);
     *x.getShare(0) -= *this->getShare(0);
     *y.getShare(0) -= *rhs.getShare(0);
+
+    thrust::copy(x.getShare(0)->begin(), x.getShare(0)->end(), _.begin());
+    std::cout << "TPC, [x] = " << _[1] << std::endl;
+    thrust::copy(e.begin(), e.end(), _.begin());
+    std::cout << "TPC, e = " << _[1] << std::endl;
+    thrust::copy(y.getShare(0)->begin(), y.getShare(0)->end(), _.begin());
+    std::cout << "TPC, [y] = " << _[1] << std::endl;
+    thrust::copy(f.begin(), f.end(), _.begin());
+    std::cout << "TPC, f = " << _[1] << std::endl;
+    thrust::copy(z.getShare(0)->begin(), z.getShare(0)->end(), _.begin());
+    std::cout << "TPC, [z] = " << _[1] << std::endl;
+
     
     this->zero();
     *this += z;
@@ -277,6 +296,9 @@ TPCBase<T, I> &TPCBase<T, I>::operator*=(const TPCBase<T, I2> &rhs) {
     temp -= *x.getShare(0);
     temp *= f;
     *this->getShare(0) += temp;
+
+    thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
+    std::cout << "TPC, res = " << _[1] << std::endl;
  
     return *this;
 }

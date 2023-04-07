@@ -26,7 +26,9 @@ AESObject::AESObject(char* filename) {
         abort();
     }
 
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, (unsigned char *)common_aes_key, NULL) != 1) {
+    char iv[32] = "IV is here. YES.IV is here. YES";
+
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, (unsigned char *)common_aes_key, iv) != 1) {
         ERR_print_errors_fp(stderr);
         abort();
     }
@@ -58,12 +60,24 @@ __m128i AESObject::getRandomBlock()
             ERR_print_errors_fp(stderr);
             abort();
         }
-
-        if(EVP_EncryptFinal_ex(ctx, ((unsigned char *) random_buffer) + len, &len) != 1) {
-            ERR_print_errors_fp(stderr);
-            abort();
-        }
         ciphertext_len += len;
+
+        if (len < RANDOM_COMPUTE * BLOCK_BYTES) {
+            if(EVP_EncryptFinal_ex(ctx, ((unsigned char *) random_buffer) + len, &len) != 1) {
+                ERR_print_errors_fp(stderr);
+                abort();
+            }
+            ciphertext_len += len;
+        }
+        // else {
+        
+        // // maybe unsafe
+        // char garbage[16];
+        // if(EVP_EncryptFinal_ex(ctx, (unsigned char *) garbage, &len) != 1) {
+        //     ERR_print_errors_fp(stderr);
+        //     abort();
+        //     // }
+        // }
 
         assert(ciphertext_len == RANDOM_COMPUTE * BLOCK_BYTES);
 	}
@@ -85,7 +99,11 @@ void AESObject::getRandom(T *buf, int n) {
         __m128i block = getRandomBlock();
 
         int buf_idx = i * BLOCK_BYTES;
-        memcpy(((char *) buf) + buf_idx, &block, (n - buf_idx < BLOCK_BYTES) ? n : BLOCK_BYTES);
+        memcpy(((char *) buf) + buf_idx, &block, (n * sizeof(T) - buf_idx < BLOCK_BYTES) ? n * sizeof(T) - buf_idx : BLOCK_BYTES);
     }
 }
 
+template void AESObject::getRandom(uint8_t *buf, int n);
+template void AESObject::getRandom(uint16_t *buf, int n);
+template void AESObject::getRandom(uint32_t *buf, int n);
+template void AESObject::getRandom(uint64_t *buf, int n);

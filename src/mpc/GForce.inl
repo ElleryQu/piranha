@@ -282,6 +282,12 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         PrecomputeObject.getBeaverTriples<T, GFO<T> >(x, y, z);
         DeviceData<T> e(size), f(size), temp(size);
 
+        std::vector<T> _(x.size());
+        thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
+        std::cout << "TPC, [a] = " << _[1] << std::endl;
+        thrust::copy(rhs.getShare(0)->begin(), rhs.getShare(0)->end(), _.begin());
+        std::cout << "TPC, [b] = " << _[1] << std::endl;
+
         *x.getShare(0) += *this->getShare(0); 
         *x.getShare(0) %= prime;
         *y.getShare(0) += *rhs.getShare(0);
