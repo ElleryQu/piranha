@@ -127,7 +127,7 @@ template<typename T, typename U=uint32_t, typename I, typename I2>
 void privateCompare(GFO<T, I> &input, GFO<T, I2> &result);
 
 template<typename T, typename I, typename I2>
-void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out);
+void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out, bool to_fxp=true);
 
 template<typename T>
 void matmul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,

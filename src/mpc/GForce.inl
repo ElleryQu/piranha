@@ -284,19 +284,30 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
 
         std::vector<T> _(x.size());
         thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
-        std::cout << "TPC, [a] = " << _[1] << std::endl;
+        std::cout << "TPC, [a] = " << _[2] << std::endl;
         thrust::copy(rhs.getShare(0)->begin(), rhs.getShare(0)->end(), _.begin());
-        std::cout << "TPC, [b] = " << _[1] << std::endl;
+        std::cout << "TPC, [b] = " << _[2] << std::endl;
 
         *x.getShare(0) += *this->getShare(0); 
         *x.getShare(0) %= prime;
         *y.getShare(0) += *rhs.getShare(0);
         *y.getShare(0) %= prime;
-        reconstruct(x, e); reconstruct(y, f);
+        reconstruct(x, e, false); reconstruct(y, f, false);
         *x.getShare(0) -= *this->getShare(0);
         *x.getShare(0) %= prime;
         *y.getShare(0) -= *rhs.getShare(0);
         *y.getShare(0) %= prime;
+
+        thrust::copy(x.getShare(0)->begin(), x.getShare(0)->end(), _.begin());
+        std::cout << "TPC, [x] = " << _[2] << std::endl;
+        thrust::copy(e.begin(), e.end(), _.begin());
+        std::cout << "TPC, e = " << _[2] << std::endl;
+        thrust::copy(y.getShare(0)->begin(), y.getShare(0)->end(), _.begin());
+        std::cout << "TPC, [y] = " << _[2] << std::endl;
+        thrust::copy(f.begin(), f.end(), _.begin());
+        std::cout << "TPC, f = " << _[2] << std::endl;
+        thrust::copy(z.getShare(0)->begin(), z.getShare(0)->end(), _.begin());
+        std::cout << "TPC, [z] = " << _[2] << std::endl;
         
         this->zero();
         *this += z;
@@ -304,20 +315,34 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         temp.zero();
         temp += f;
         temp *= e;
+        temp %= prime;
         *this += temp;
+        *this %= prime;
+
+        thrust::copy(temp.begin(), temp.end(), _.begin());
+        std::cout << "TPC, e*f = " << _[2] << std::endl;
 
         temp.zero();
         temp -= *y.getShare(0);
+        temp %= prime;
         temp *= e;
         temp %= prime;
         *this->getShare(0) += temp;
+        *this %= prime;
+
+        thrust::copy(temp.begin(), temp.end(), _.begin());
+        std::cout << "TPC, [y]*e = " << _[2] << std::endl;
 
         temp.zero();
         temp -= *x.getShare(0);
+        temp %= prime;
         temp *= f;
         temp %= prime;
         *this->getShare(0) += temp;
         *this %= prime;
+
+        thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
+        std::cout << "TPC, res = " << _[2] << std::endl;
     } 
     else 
     {
@@ -452,6 +477,8 @@ GFO<T, BufferIterator<T> >::GFO(std::initializer_list<double> il, bool convertTo
             // nothing
             break;
     }
+
+    *this *= 1;
 }
 
 template<typename T>
@@ -791,8 +818,9 @@ void privateCompare(GFO<T, I> &input, GFO<T, I2> &result) {
     func_profiler.add_comm_round();
 }
 
+// open a field element 'in' into 'out'. If 'to_fxp' is true, convert 'out' into ring.
 template<typename T, typename I, typename I2>
-void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
+void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out, bool to_fxp) {
 
     auto prime = in.prime;
     comm_profiler.start();
@@ -814,9 +842,11 @@ void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out) {
     out += rxShare;
     out %= prime;
 
-    thrust::transform(
-        out.begin(), out.end(), out.begin(),
-        field_restruct_functor<T>(prime));
+    if (to_fxp) {
+        thrust::transform(
+            out.begin(), out.end(), out.begin(),
+            field_restruct_functor<T>(prime));
+    }
 
     func_profiler.add_comm_round();
 }

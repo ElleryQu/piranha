@@ -21,17 +21,10 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 		x *= 1;
 		y *= 1;
 		z *= 1;
-		std::cout << "my x: " << rx[1] << std::endl;
-		std::cout << "my y: " << ry[1] << std::endl;
-		std::cout << "my z: " << rz[1] << std::endl;
-		T tempx = rx[1], tempy = ry[1], tempz;
 
 		aes_objects[1-partyNum]->getRandom(rx, x.size());
 		aes_objects[1-partyNum]->getRandom(ry, y.size());
 		aes_objects[1-partyNum]->getRandom(rz, z.size());
-		std::cout << "your x: " << rx[1] << std::endl;
-		std::cout << "your y: " << ry[1] << std::endl;
-		std::cout << "your z: " << rz[1] << std::endl;
 
 		// TODO: HE and communication.
 		// 0: Server.
@@ -43,7 +36,6 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 			vx *= 1;
 			vy *= 1;
 			vz *= 1;
-			tempz = rz[1];
 			vx += x;
 			vy += y;
 			vx *= *vy.getShare(0);
@@ -51,10 +43,6 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 			z += vx;
 			z -= vz;
 		}
-		std::vector<T> open_z(z.size());
-		thrust::copy(z.getShare(0)->begin(), z.getShare(0)->end(), open_z.begin());
-		std::cout << "your z: " << tempz << std::endl;
-		std::cout << "my final z: " << open_z[1] << std::endl;
 	}
 }
 
