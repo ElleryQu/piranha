@@ -78,7 +78,7 @@ class Precompute
         template<typename T, typename Share>
         void getMatrixBeaverTriple(Share &x, Share &y, Share &z,
             int a_rows, int a_cols, int b_rows, int b_cols,
-            bool transpose_a, bool transpose_b);
+            bool transpose_a, bool transpose_b, bool transpose_c);
 
         template<typename T, typename Share>
         void getBooleanBeaverTriples(Share &x, Share &y, Share &z) {

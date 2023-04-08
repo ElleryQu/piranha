@@ -12,14 +12,25 @@
 #include "../gpu/DeviceData.h"
 #include "../globals.h"
 
-static int p = 257;
+static uint64_t p = 257;
+/**
+ * It is difficult to choose a appropriate prime p in Piranha:
+ * as we know, a fxp is embedded in a field element, and the field
+ * element is embedded in 64 bit ring. So, we shall make sure:
+ *  1. the bit size of the field is small enough to supports enough times
+ *     addition op. If we have a fc layer with 16384 output neurons, 
+ *     then the bit size of field must be no more than 25 bits.
+ *  2. the bit size of the fxp is small enough to to allow a mult without
+ *     e_0 error. However, GForce gives a nearly faithful truncation 
+ *     protocol. 
+*/
 // // 23 bit.
-// static int q = 7340033;
-// 60 bit.
-
-#define HIGH_Q 1
-// 31 bits.
-static uint64_t q = 2138816513;
+// static uint64_t q = 7340033;
+// 24 bit. Supports 2^16 times addition.
+static uint64_t q = 11022156;
+#define HIGH_Q false
+// // 31 bits.
+// static uint64_t q = 2138816513;
 
 template <typename T, typename I>
 class GFOBase {

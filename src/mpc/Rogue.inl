@@ -1404,7 +1404,7 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
     if (!b.offline_known)
     {
-        PrecomputeObject.getMatrixBeaverTriple<T, ROG<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b);
+        PrecomputeObject.getMatrixBeaverTriple<T, ROG<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b, transpose_c);
 
         DeviceData<T> e(x.size()), f(y.size()), temp(z.size());
 

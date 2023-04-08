@@ -49,7 +49,7 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 template<typename T, typename Share>
 void Precompute::getMatrixBeaverTriple(Share &x, Share &y, Share &z,
 	int a_rows, int a_cols, int b_rows, int b_cols,
-	bool transpose_a, bool transpose_b) 
+	bool transpose_a, bool transpose_b, bool transpose_c) 
 {
 	int rows = transpose_a ? a_cols : a_rows;
 
@@ -65,20 +65,23 @@ void Precompute::getMatrixBeaverTriple(Share &x, Share &y, Share &z,
 	}
 	else {
 		T rx[x.size()], ry[y.size()], rz[z.size()];
+		// generate my randomness.
 		aes_objects[partyNum]->getRandom(rx, x.size());
 		aes_objects[partyNum]->getRandom(ry, y.size());
 		aes_objects[partyNum]->getRandom(rz, z.size());
 		thrust::copy(rx, rx + x.size(), x.getShare(0)->begin());
 		thrust::copy(ry, ry + y.size(), y.getShare(0)->begin());
 		thrust::copy(rz, rz + z.size(), z.getShare(0)->begin());
+		// auto modular for GForce.
 		x *= 1;
 		y *= 1;
 		z *= 1;
 		// std::cout << rx[1] << std::endl;
 		// std::cout << ry[1] << std::endl;
 		// std::cout << rz[1] << std::endl;
-		T tempx = rx[1], tempy = ry[1];
+		// T tempx = rx[1], tempy = ry[1];
 
+		// generate the other party's randomness.
 		aes_objects[1-partyNum]->getRandom(rx, x.size());
 		aes_objects[1-partyNum]->getRandom(ry, y.size());
 		aes_objects[1-partyNum]->getRandom(rz, z.size());
@@ -95,13 +98,13 @@ void Precompute::getMatrixBeaverTriple(Share &x, Share &y, Share &z,
 			vx *= 1;
 			vy *= 1;
 			vz *= 1;
-			gpu::gemm(rows, cols, shared, vx.getShare(0), transpose_a, y.getShare(0), transpose_b, z.getShare(0), 0);
+			gpu::gemm(rows, cols, shared, vx.getShare(0), transpose_a, y.getShare(0), transpose_b, z.getShare(0), transpose_c);
 			z -= vz;
-			gpu::gemm(rows, cols, shared, x.getShare(0), transpose_a, vy.getShare(0), transpose_b, vz.getShare(0), 0);
+			gpu::gemm(rows, cols, shared, x.getShare(0), transpose_a, vy.getShare(0), transpose_b, vz.getShare(0), transpose_c);
 			z += vz;
-			gpu::gemm(rows, cols, shared, x.getShare(0), transpose_a, y.getShare(0), transpose_b, vz.getShare(0), 0);
+			gpu::gemm(rows, cols, shared, x.getShare(0), transpose_a, y.getShare(0), transpose_b, vz.getShare(0), transpose_c);
 			z += vz;
-			gpu::gemm(rows, cols, shared, vx.getShare(0), transpose_a, vy.getShare(0), transpose_b, vz.getShare(0), 0);
+			gpu::gemm(rows, cols, shared, vx.getShare(0), transpose_a, vy.getShare(0), transpose_b, vz.getShare(0), transpose_c);
 			z += vz;
 		}
 		std::vector<double> open_z(z.size());

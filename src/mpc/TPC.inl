@@ -1079,7 +1079,7 @@ void localMatMul(const TPC<T> &a, const TPC<T> &b, TPC<T> &c,
 
     int a_rows = transpose_a ? K : M; int a_cols = transpose_a ? M : K;
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
-    PrecomputeObject.getMatrixBeaverTriple<T, TPC<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b);
+    PrecomputeObject.getMatrixBeaverTriple<T, TPC<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b, transpose_c);
 
     DeviceData<T> e(x.size()), f(y.size()), temp(z.size());
 

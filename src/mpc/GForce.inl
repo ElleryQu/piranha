@@ -282,11 +282,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         PrecomputeObject.getBeaverTriples<T, GFO<T> >(x, y, z);
         DeviceData<T> e(size), f(size), temp(size);
 
-        std::vector<T> _(x.size());
-        thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
-        std::cout << "TPC, [a] = " << _[2] << std::endl;
-        thrust::copy(rhs.getShare(0)->begin(), rhs.getShare(0)->end(), _.begin());
-        std::cout << "TPC, [b] = " << _[2] << std::endl;
 
         *x.getShare(0) += *this->getShare(0); 
         *x.getShare(0) %= prime;
@@ -297,17 +292,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         *x.getShare(0) %= prime;
         *y.getShare(0) -= *rhs.getShare(0);
         *y.getShare(0) %= prime;
-
-        thrust::copy(x.getShare(0)->begin(), x.getShare(0)->end(), _.begin());
-        std::cout << "TPC, [x] = " << _[2] << std::endl;
-        thrust::copy(e.begin(), e.end(), _.begin());
-        std::cout << "TPC, e = " << _[2] << std::endl;
-        thrust::copy(y.getShare(0)->begin(), y.getShare(0)->end(), _.begin());
-        std::cout << "TPC, [y] = " << _[2] << std::endl;
-        thrust::copy(f.begin(), f.end(), _.begin());
-        std::cout << "TPC, f = " << _[2] << std::endl;
-        thrust::copy(z.getShare(0)->begin(), z.getShare(0)->end(), _.begin());
-        std::cout << "TPC, [z] = " << _[2] << std::endl;
         
         this->zero();
         *this += z;
@@ -319,9 +303,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         *this += temp;
         *this %= prime;
 
-        thrust::copy(temp.begin(), temp.end(), _.begin());
-        std::cout << "TPC, e*f = " << _[2] << std::endl;
-
         temp.zero();
         temp -= *y.getShare(0);
         temp %= prime;
@@ -330,8 +311,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         *this->getShare(0) += temp;
         *this %= prime;
 
-        thrust::copy(temp.begin(), temp.end(), _.begin());
-        std::cout << "TPC, [y]*e = " << _[2] << std::endl;
 
         temp.zero();
         temp -= *x.getShare(0);
@@ -340,9 +319,6 @@ GFOBase<T, I> &GFOBase<T, I>::operator*=(const GFOBase<T, I2> &rhs) {
         temp %= prime;
         *this->getShare(0) += temp;
         *this %= prime;
-
-        thrust::copy(this->getShare(0)->begin(), this->getShare(0)->end(), _.begin());
-        std::cout << "TPC, res = " << _[2] << std::endl;
     } 
     else 
     {
@@ -1498,13 +1474,13 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
     if (!b.offline_known)
     {
-        PrecomputeObject.getMatrixBeaverTriple<T, GFO<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b);
+        PrecomputeObject.getMatrixBeaverTriple<T, GFO<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b, transpose_c);
 
         DeviceData<T> e(x.size()), f(y.size()), temp(z.size());
 
         x += a; y += b;
-        reconstruct(x, e);
-        reconstruct(y, f);
+        reconstruct(x, e, false);
+        reconstruct(y, f, false);
         x -= a; y -= b;
 
         c.zero();

@@ -42,8 +42,8 @@ TYPED_TEST(RogueTest, AES) {
     char key[] = "files/aeskey1";
     AESObject test_aes(key);
 
-    uint64_t random_numbers[10];
-    test_aes.getRandom(random_numbers, 10);
+    uint64_t random_numbers[1];
+    test_aes.getRandom(random_numbers, 1);
     for (uint64_t x: random_numbers){
         std::cout << x << std::endl;
     }
@@ -172,7 +172,7 @@ TYPED_TEST(RogueTest, MatMul2) {
 
     Share a = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // 4 x 4
     // Share b = {-2.786461, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
-    Share b = {-2, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
+    Share b = {-2, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274}; // 4 x 3
     Share c(12); // 4 x 3
 
     DeviceData<T> result(12);
