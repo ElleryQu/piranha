@@ -172,6 +172,18 @@ TPCBase<T, I> &TPCBase<T, I>::operator*=(const T rhs) {
 }
 
 template<typename T, typename I>
+TPCBase<T, I> &TPCBase<T, I>::operator^=(const T rhs) {
+    *shareA ^= rhs;
+    return *this;
+}
+
+template<typename T, typename I>
+TPCBase<T, I> &TPCBase<T, I>::operator&=(const T rhs) {
+    *shareA &= rhs;
+    return *this;
+}
+
+template<typename T, typename I>
 TPCBase<T, I> &TPCBase<T, I>::operator>>=(const T rhs) {
     *shareA >>= rhs;
     return *this;

@@ -48,6 +48,8 @@ class ROGBase {
         ROGBase<T, I> &operator*=(const T rhs);
         ROGBase<T, I> &operator%=(const T rhs);
         ROGBase<T, I> &operator>>=(const T rhs);
+        ROGBase<T, I> &operator^=(const T rhs);
+        ROGBase<T, I> &operator&=(const T rhs);
 
         template<typename I2>
         ROGBase<T, I> &operator+=(const DeviceData<T, I2> &rhs);

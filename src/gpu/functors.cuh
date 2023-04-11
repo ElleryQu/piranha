@@ -53,7 +53,7 @@ struct scalar_mod_functor {
     __host__ __device__ T operator()(const T &x) const {
         // assert(a>=0)
         return static_cast<T>(
-            (x+a) % (a)
+            (x) % (a)
         );
     }
 };

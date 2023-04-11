@@ -26,11 +26,11 @@ static uint64_t p = 257;
 */
 // // 23 bit.
 // static uint64_t q = 7340033;
-// 24 bit. Supports 2^16 times addition.
-static uint64_t q = 11022156;
+// // 24 bit. Supports 2^16 times addition.
+// static uint64_t q = 11022156;
 #define HIGH_Q false
-// // 31 bits.
-// static uint64_t q = 2138816513;
+// 31 bits.
+static uint64_t q = 2138816513;
 
 template <typename T, typename I>
 class GFOBase {
@@ -65,6 +65,8 @@ class GFOBase {
         GFOBase<T, I> &operator*=(const T rhs);
         GFOBase<T, I> &operator%=(const T rhs);
         GFOBase<T, I> &operator>>=(const T rhs);
+        GFOBase<T, I> &operator^=(const T rhs);
+        GFOBase<T, I> &operator&=(const T rhs);
 
         template<typename I2>
         GFOBase<T, I> &operator+=(const DeviceData<T, I2> &rhs);
@@ -135,7 +137,7 @@ template<typename T, typename U=uint32_t, typename I, typename I2, typename I3>
 void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, I3> &result);
 
 template<typename T, typename U=uint32_t, typename I, typename I2>
-void privateCompare(GFO<T, I> &input, GFO<T, I2> &result);
+void privateCompare(GFO<T, I> &input, GFO<U, I2> &result);
 
 template<typename T, typename I, typename I2>
 void reconstruct(GFO<T, I> &in, DeviceData<T, I2> &out, bool to_fxp=true);

@@ -1,0 +1,43 @@
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -DFLOAT_PRECISION=10 -DTWOPC -c src/mpc/AESObject.cpp -o build/AESObject.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -DFLOAT_PRECISION=10 -DTWOPC -c src/util/Profiler.cpp -o build/Profiler.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -DFLOAT_PRECISION=10 -DTWOPC -c src/util/basicSockets.cpp -o build/basicSockets.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/main.cu -o build/main.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/ResLayer.cu -o build/ResLayer.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/LNLayer.cu -o build/LNLayer.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/ReLULayer.cu -o build/ReLULayer.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/AveragepoolLayer.cu -o build/AveragepoolLayer.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/FCLayer.cu -o build/FCLayer.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/NeuralNetwork.cu -o build/NeuralNetwork.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+/usr/bin/nvcc -dc -Xcompiler="-O3,-w,-std=c++14,-pthread,-msse4.1,-maes,-msse2,-mpclmul,-fpermissive,-fpic,-pthread" -Xcudafe "--diag_suppress=declared_but_not_referenced" -Xcompiler="-DFLOAT_PRECISION=10 -DTWOPC" -c src/nn/MaxpoolLayer.cu -o build/MaxpoolLayer.o -I '/usr/local/cuda-11.5/include' -I 'ext/cutlass/include' -I 'ext/cutlass/tools/util/include' -I 'include' -I '/home/chenxudong/googletest/include'
+
+
+
+
+
+
+Compilation terminated.
+Compilation terminated.
+Compilation terminated.
+Compilation terminated.
+
+Compilation terminated.
+Compilation terminated.
+
+Compilation terminated.
+Compilation terminated.
+nvcc error   : 'cicc' died due to signal 2 
+nvcc error   : 'cicc' died due to signal 2 
+make: *** [Makefile:46: build/MaxpoolLayer.o] Interrupt
+make: *** [Makefile:46: build/NeuralNetwork.o] Interrupt
+nvcc error   : 'cicc' died due to signal 2 
+make: *** [Makefile:46: build/FCLayer.o] Interrupt
+nvcc error   : 'cicc' died due to signal 2 
+nvcc error   : 'cicc' died due to signal 2 
+nvcc error   : 'cicc' died due to signal 2 
+nvcc error   : 'cicc' died due to signal 2 
+make: *** [Makefile:46: build/ResLayer.o] Interrupt
+make: *** [Makefile:46: build/main.o] Interrupt
+nvcc error   : 'cicc' died due to signal 2 
+make: *** [Makefile:46: build/AveragepoolLayer.o] Interrupt
+make: *** [Makefile:46: build/LNLayer.o] Interrupt
+make: *** [Makefile:46: build/ReLULayer.o] Interrupt

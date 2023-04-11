@@ -190,6 +190,18 @@ ROGBase<T, I> &ROGBase<T, I>::operator>>=(const T rhs) {
 }
 
 template<typename T, typename I>
+ROGBase<T, I> &ROGBase<T, I>::operator^=(const T rhs) {
+    *shareA ^= rhs;
+    return *this;
+}
+
+template<typename T, typename I>
+ROGBase<T, I> &ROGBase<T, I>::operator&=(const T rhs) {
+    *shareA &= rhs;
+    return *this;
+}
+
+template<typename T, typename I>
 template<typename I2>
 ROGBase<T, I> &ROGBase<T, I>::operator+=(const DeviceData<T, I2> &rhs) {
     if (partyNum == SERVER) {

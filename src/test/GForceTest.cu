@@ -14,7 +14,7 @@ struct RogueTest : public testing::Test {
     using ParamType = T;
 };
 
-bool use_offline = false;
+bool use_offline = true;
 
 std::default_random_engine generator(0xffa0);
 
@@ -409,12 +409,12 @@ TYPED_TEST(RogueTest, DRELU3) {
         0.326922, 0.156987, 0.461417, -0.221444, 9.846086, 0.000000, 0.000000, 0.000000
     };
 
-    T negative = (T)(-10 * (1 << FLOAT_PRECISION));
+    T negative = (T)(10);
     DeviceData<T> add = {
         0, 0, 0, 0, 0, negative, negative, negative
     };
     for(int share = 0; share < Share::numShares(); share++) {
-        *input.getShare(share) += add;
+        input -= add;
     }
 
     Share result(input.size());
@@ -425,6 +425,8 @@ TYPED_TEST(RogueTest, DRELU3) {
     std::vector<double> expected = {
         1, 1, 1, 0, 1, 0, 0, 0
     };
+
+    printDeviceData(super_result, "actual", false);
 
     assertShare(super_result, expected, false);
 }
@@ -457,6 +459,11 @@ TYPED_TEST(RogueTest, DRELU4) {
         input2.begin(), 
         expected.begin(),
         [](double x, double y) {return (x-y)>=0;} );
+    std::cout << "expected_derelu:" << std::endl;
+    for (auto t: expected) {
+        std::cout << t << " ";
+    }
+    std::cout << std::endl;
 
     assertShare(result, expected, false);
 }

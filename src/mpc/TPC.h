@@ -44,6 +44,8 @@ class TPCBase {
         TPCBase<T, I> &operator-=(const T rhs);
         TPCBase<T, I> &operator*=(const T rhs);
         TPCBase<T, I> &operator>>=(const T rhs);
+        TPCBase<T, I> &operator^=(const T rhs);
+        TPCBase<T, I> &operator&=(const T rhs);
 
         template<typename I2>
         TPCBase<T, I> &operator+=(const DeviceData<T, I2> &rhs);
