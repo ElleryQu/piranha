@@ -309,37 +309,23 @@ ROGBase<T, I> &ROGBase<T, I>::operator*=(const ROGBase<T, I2> &rhs) {
     } 
     else 
     {
-        // printf("-----------------\nOffline branch entered.\n-----------------\n");
-        // TODO: Precomputation.
-        // SERVER: r^S.     
-        // CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(size);
-        offline_output.fill(0);
-
-        // SERVER: x-r^C.   
-        // CLIENT: r^C.
-        DeviceData<T> r(size);
-        r.fill(0);
         if (partyNum == CLIENT) {   
-            *this->getShare(0) -= r;
-            comm_profiler.start();
-            this->getShare(0)->transmit(ROG<T>::otherParty(partyNum));
-            this->getShare(0)->join();
-            comm_profiler.accumulate("comm-time");
-            this->getShare(0)->zero();
-            *this->getShare(0) += offline_output;
+            PrecomputeObject.getCorrelatedPairs<T, ROGBase<T, I>, ROGBase<T, I>, ROG<T>>(*this, *this);
         }
         else if (partyNum == SERVER) {
-            comm_profiler.start();
-            r.receive(ROG<T>::otherParty(partyNum));
-            r.join();
-            comm_profiler.accumulate("comm-time");
-            *this->getShare(0) += r;
-            *this->getShare(0) *= *rhs.getShare(0);
-            *this->getShare(0) += offline_output;
+            ROG<T> sz(size);
+            ROGBase<T, BufferIterator<T>>& szt = sz;
+            PrecomputeObject.getCorrelatedPairs<
+                T, ROGBase<T, I2>, ROGBase<T, BufferIterator<T>>, ROG<T>
+            >
+            (
+                const_cast<ROGBase<T, I2> &>(rhs), 
+                // static_cast<ROGBase<T, BufferIterator<T>>>(sz)
+                szt
+            );
+            *this *= *rhs.getShare(0);
+            *this += sz;
         }
-
-        func_profiler.add_comm_round();
     }
  
     return *this;
@@ -476,13 +462,12 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
 
     // step 1:  SERVER samples r and send xs + r to CLIENT.
     //          CLIENT computes z = x + r.
-    DeviceData<T> r(size);
+    ROG<T> r(size);
+    PrecomputeObject.getRandomNumber<T, ROG<T>>(r);
     if (partyNum == ROG<uint32_t>::SERVER) {
         // generate r.
-        // TODO: randomness.
-        r.fill(0);
         
-        *a.getShare(0) += r;
+        a += r;
         comm_profiler.start();
         a.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         a.getShare(0)->join();
@@ -492,212 +477,34 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
         // TODO: randomness.
         r.fill(0);
         comm_profiler.start();
-        r.receive(ROG<T>::otherParty(partyNum));
-        r.join();
+        r.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+        r.getShare(0)->join();
         comm_profiler.accumulate("comm-time");
         // compute z.
-        r += *a.getShare(0);
+        r += a;
     }
 
     // step 2:  SERVER and CLIENT run a millionaire's protocol.
     using SRIterator = typename StridedRange<I>::iterator;
-    DeviceData<T> rmodd(size);
-    rmodd.fill(0);
+    ROG<T> rmodd(size);
+    rmodd.zero();
     rmodd += r;
-    rmodd %= denominators;
+    *rmodd.getShare(0) %= denominators;
 
     // step 3: compute <1{rmodd <= zmodd}>_2
-    ROG<T> rmodd_(&rmodd);
-    ROG<U> compare_result(size);
-    compare_result.zero();
-    privateCompare(rmodd_, compare_result);
+    GFO<T> rmodd_(rmodd.getShare(0));
+    GFO<U> bool_result(size);
+    bool_result.zero();
+    privateCompare(rmodd_, bool_result);
+    ROG<U> compare_result(bool_result.getShare(0));
 
     // Step 4: the final step.
-    r /= denominators;
-    r &= 1;
-    thrust::copy(r.begin(), r.end(), result.getShare(0)->begin());
+    *r.getShare(0) /= denominators;
+    *r.getShare(0) &= 1;
+    thrust::copy(r.getShare(0)->begin(), r.getShare(0)->end(), result.getShare(0)->begin());
     result ^= compare_result;
 
-    func_profiler.add_comm_round();
-}
-
-/// @brief SERVER and CLIENT run a millionaire's protocool, output
-/// <1{x>y}>_2, where the input of SERVER is x and CLIENT y.
-/// @tparam T DeviceData datatype.
-/// @tparam I DeviceData iterator.
-/// @param a The input of SERVER or CLIENT.
-template<typename T, typename U, typename I, typename I2>
-void privateCompare(ROG<T, I> &input, ROG<U, I2> &result) {
-    // TODO: int8 or int4 support.  uint8 √
-    // notice: uint8 is enough to hold prexor.
-    size_t T_bits_count = PC_BITS;
-    size_t size = input.size();
-
-    // Commom variable.
-    int offset, stride;
-    DeviceData<U> b(size*(T_bits_count));
-    DeviceData<U> delta(size);
-    b.fill(0), delta.fill(0);
-    using SRIterator = typename StridedRange<I2>::iterator;
-
-    // MILL step 1: bit expand. because r is known to SERVER, so the bit expand of r is trival.
-    // TODO: int8 support.
-    gpu::bitexpand(input.getShare(0), &b, PC_BITS);
-    
-    if (partyNum == ROG<uint32_t>::SERVER) {
-        // MILL step 2: SERVER sample deltas, compute alpha = 1 - 2*deltas. 
-        // TODO: randomn number.
-        // test passed. run test passed.
-        DeviceData<U> alpha(size * T_bits_count);
-        gpu::vectorExpand(&delta, &alpha, T_bits_count);
-        alpha *= static_cast<U>(-2);
-        alpha += p+1;
-        alpha %= p;
-
-        DeviceData<U> rbi(size * T_bits_count);
-        DeviceData<U> rbn1(size);
-        rbi.fill(1);
-        rbn1.fill(1);
-
-        // MILL step 3: SERVER and CLIENT evaluate bi together.
-        stride = T_bits_count;
-        ROG<U> bi_xor(size*T_bits_count);
-        bi_xor.fill(0);
-        *bi_xor.getShare(0) += b;
-        bi_xor.offline_known = true;
-        ROG<U> another_input(size*T_bits_count);
-        another_input.fill(0);
-        another_input *= bi_xor;
-        another_input %= p;
-        another_input *= static_cast<U>(-2);
-        another_input += b;
-        another_input %= p;
-        ROG<U> &prefix_xor = another_input;
-        prefix_xor *= 3;
-        prefix_xor %= p;
-
-        // note the output of bitexpand is little  endian.
-        thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
-        thrust::counting_iterator<U> key_count_iter(0);
-        DeviceData<U> key(size);
-        thrust::copy(key_count_iter, key_count_iter + key.size(), key.begin());
-        DeviceData<U> key_expand(size * T_bits_count);
-        gpu::vectorExpand(&key, &key_expand, T_bits_count);
-        thrust::inclusive_scan_by_key(key_expand.begin(), key_expand.end(), reverse_prefix_xor_iter, reverse_prefix_xor_iter);
-        b += *prefix_xor.getShare(0);
-        b += alpha;
-        b %= p;
-
-        // MILL step 4: computes b_{-1}.
-        // now, alpha becomes b_{-1}.
-        // test pass. run test suspend.
-        DeviceData<U> bn1(size);
-        bn1.zero();
-        bn1 += delta;
-        bn1 *= 3;
-        StridedRange<I2> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
-        DeviceData<U, SRIterator> reduce_xor(bn1_range.begin(), bn1_range.end());
-        bn1 += reduce_xor;
-        b *= rbi;
-        bn1 *= rbn1;
-        b %= p;
-        bn1 %= p;
-
-        // MILL step 5: transmission.
-        comm_profiler.start();
-        bn1.transmit(ROG<T>::otherParty(partyNum));
-        bn1.join();
-        b.transmit(ROG<T>::otherParty(partyNum));
-        b.join();
-        comm_profiler.accumulate("comm-time");
-
-        // // MILL step 6: pass.
-        // // PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASS.
-        result.zero();
-        *result.getShare(0) += delta;
-    }
-    else if (partyNum == ROG<uint32_t>::CLIENT) {
-
-        // MILL step 2: pass.
-        // TODO: randomn number.
-        // PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASS.
-
-        // MILL step 3: SERVER and CLIENT evaluate bi together.
-        stride = T_bits_count;
-        ROG<U> bi_xor(size*T_bits_count);
-        bi_xor.fill(0);
-        *bi_xor.getShare(0) += b;
-        ROG<U> another_input(size*T_bits_count);
-        another_input.fill(0);
-        another_input.offline_known = true;
-        bi_xor *= another_input;
-        bi_xor %= p;
-        bi_xor *= static_cast<U>(-2);
-        *bi_xor.getShare(0) += b;
-        bi_xor %= p;
-        ROG<U> &prefix_xor = another_input;
-        prefix_xor *= 3;
-        prefix_xor %= p;
-        // note the output of bitexpand is small endian.
-        thrust::reverse_iterator<I2> reverse_prefix_xor_iter(prefix_xor.getShare(0)->end());
-        thrust::counting_iterator<U> key_count_iter(0);
-        DeviceData<U> key(size);
-        thrust::copy(key_count_iter, key_count_iter + key.size(), key.begin());
-        DeviceData<U> key_expand(size * T_bits_count);
-        gpu::vectorExpand(&key, &key_expand, T_bits_count);
-        thrust::inclusive_scan_by_key(key_expand.begin(), key_expand.end(), reverse_prefix_xor_iter, reverse_prefix_xor_iter);
-        b *= static_cast<U>(-1);
-        b += *prefix_xor.getShare(0);
-        b %= p;
-
-        // MILL step 4: computes b_{-1}.
-        // now, alpha becomes b_{-1}.
-        DeviceData<U> bn1(size);
-        bn1.zero();
-        bn1 *= 3;
-        StridedRange<I2> bn1_range(prefix_xor.getShare(0)->begin(), prefix_xor.getShare(0)->end(), T_bits_count);
-        DeviceData<U, SRIterator> reduce_xor(bn1_range.begin(), bn1_range.end());
-        bn1 += reduce_xor;
-        bn1 %= p;
-
-        // MILL step 5: transmission.
-        DeviceData<U> recvbi(size * T_bits_count);
-        DeviceData<U> recvbn1(size);
-        recvbi.fill(0), recvbn1.fill(0);
-        comm_profiler.start();
-        recvbn1.receive(ROG<T>::otherParty(partyNum));
-        recvbn1.join();
-        recvbi.receive(ROG<T>::otherParty(partyNum));
-        recvbi.join();
-        comm_profiler.accumulate("comm-time");
-        b += recvbi;
-        bn1 += recvbn1;
-        b %= p;
-        bn1 %= p;
-
-        // MILL step 6: CLIENT check if there is any 0.
-        // Lets work.        
-        thrust::transform(b.begin(), b.end(), b.begin(), is_not_a_functor<T>(0));
-        thrust::transform(bn1.begin(), bn1.end(), bn1.begin(), is_not_a_functor<T>(0));
-
-        stride = 2;
-        while (stride < T_bits_count) {
-            offset = (size_t) (stride / 2);
-            StridedRange<I2> b_even_range(b.begin(), b.end(), stride);
-            StridedRange<I2> b_odd_range(b.begin()  + offset, b.end(), stride);
-            DeviceData<U, SRIterator> b_even(b_even_range.begin(), b_even_range.end());
-            DeviceData<U, SRIterator> b_odd(b_odd_range.begin(), b_odd_range.end());
-            b_even *= b_odd;
-            b_even %= p;
-            stride *= 2;
-        }
-        StridedRange<I2> b_range(b.begin(), b.end(), stride);
-        DeviceData<U, SRIterator> b_(b_range.begin(), b_range.end());
-        bn1 *= b_;
-        result.zero();
-        *result.getShare(0) += bn1;
-    }
-    func_profiler.add_comm_round();
+    comm_profiler.add_comm_round();
 }
 
 template<typename T, typename I, typename I2>
@@ -720,7 +527,7 @@ void reconstruct(ROG<T, I> &in, DeviceData<T, I2> &out) {
     out += *in.getShare(0);
     out += rxShare;
 
-    func_profiler.add_comm_round();
+    comm_profiler.add_comm_round();
 }
 
 template<typename T>
@@ -734,39 +541,6 @@ void matmul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
     // dividePublic(c, (T)1 << truncation);
     c >>= truncation;
 }
-
-/**
- * return b*(y-x) + x. if b=0, return x; else return y. b is a boolean sharing.
-*/
-// template<typename T, typename U, typename I, typename I2, typename I3, typename I4>
-// void selectShare(const ROG<T, I> &x, const ROG<T, I2> &y, const ROG<U, I3> &b, ROG<T, I4> &z) {
-
-//     assert(x.size() == y.size() && x.size() == b.size() && x.size() == z.size() && "ROG selectShare input size mismatch");
-
-//     //TO_BE_DONE
-//     ROG<T> c(x.size());
-//     ROG<U> cbits(b.size());
-
-//     // b XOR c, then open -> e
-//     cbits ^= b;
-
-//     DeviceData<U> e(cbits.size());
-//     reconstruct(cbits, e);
-
-//     // d = 1-c if e=1 else d = c       ->        d = (e)(1-c) + (1-e)(c)
-//     ROG<T> d(e.size());
-//     convex_comb(d, c, e);
-
-//     // z = ((y - x) * d) + x
-//     ROG<T> result(x.size());
-//     result += y;
-//     result -= x;
-//     result *= d;
-//     result += x;
-    
-//     z.zero();
-//     z += result;
-// }
 
 /**
  * return b*(y-x) + x. if b=0, return x; else return y. b is a arithmatic sharing.
@@ -899,31 +673,30 @@ void localFprop(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
     }
     else
     {
-        // printf("-----------------\nOffline branch entered.\n-----------------\n");
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            // TODO: offline phase.
-            DeviceData<T> Zc(C.size()); 
-            Zc.zero();
-
-            C.zero();
-            *C.getShare(0) += Zc;
+            PrecomputeObject.getCorrelatedPairs_fprop<T, ROG<T>>(
+                A, C,
+                batchSize, imageHeight, imageWidth, Din,
+                Dout, filterHeight, filterWidth,
+                paddingHeight, paddingWidth,
+                stride, dilation
+            );
         }
         else if (partyNum == ROG<uint32_t>::SERVER) {
-            // TODO: offline phase.
-            DeviceData<T> Sz(C.size()), Rs(C.size());
-            Sz.zero(), Rs.zero();
-
-            DeviceData<T> a_copy(A.size()), b_copy(B.size());
-            a_copy.zero(), b_copy.zero();
-            a_copy += *A.getShare(0), b_copy += *B.getShare(0);
-            gpu::conv_fprop(&a_copy, &b_copy, C.getShare(0), 
+            ROG<T> Sz(C.size());
+            PrecomputeObject.getCorrelatedPairs_fprop<T, ROG<T>>(
+                B, Sz,
+                batchSize, imageHeight, imageWidth, Din,
+                Dout, filterHeight, filterWidth,
+                paddingHeight, paddingWidth,
+                stride, dilation
+            );
+            gpu::conv_fprop(A.getShare(0), B.getShare(0), C.getShare(0), 
                 batchSize, imageHeight, imageWidth, Din,
                 Dout, filterHeight, filterWidth,
                 paddingHeight, paddingWidth,
                 stride, dilation);
-
-            *C.getShare(0) += Sz;
-            *C.getShare(0) -= Rs;
+            C += Sz;
         }
     }
 }
@@ -1158,8 +931,11 @@ void ReLU(const ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult) {
     func_profiler.start();
     reshare(input, minput);
     dReLU(input, dresult);
-    FusionMux(minput, dresult, result);
     func_profiler.accumulate("relu-drelu");
+
+    func_profiler.start();
+    FusionMux(minput, dresult, result);
+    func_profiler.accumulate("relu-mux");
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
@@ -1173,10 +949,15 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
     thrust::copy(b.getShare(0)->begin(), 
         b.getShare(0)->end(),  
         tb.getShare(0)->begin());
-    if (partyNum == ROG<uint32_t>::SERVER) {
-        *bang.getShare(1) += *tb.getShare(0);
-    }
-    *db.getShare(0) += *bang.getShare(1);
+    // if (partyNum == ROG<uint32_t>::SERVER) {
+    //     *bang.getShare(1) += *tb.getShare(0);
+    // }
+    // *db.getShare(0) += *bang.getShare(1);
+    PrecomputeObject.FusionMux_off<
+        T, MTPC<T, I>, ROG<T>, MTPC<T>, ROG<T, I3>
+    > (
+        const_cast<MTPC<T, I>& >(x), tb, dbdx, db, bang, result
+    );
 
     // online.
     // Compute D_b and [\zeta]^C. 
@@ -1185,6 +966,8 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *bang.getShare(0) ^= *tb.getShare(0);
         comm_profiler.start();
         bang.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
+        bang.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
         
         // while transmiting, lets compute...
         *db.getShare(0) *= *x.getShare(0);
@@ -1206,7 +989,7 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *db.getShare(0) *= *x.getShare(1);
         *dbdx.getShare(0) -= *db.getShare(0);
 
-        bang.getShare(0)->join();
+        comm_profiler.start();
         dbdx.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
         dbdx.getShare(0)->join();
         comm_profiler.accumulate("comm-time");
@@ -1224,6 +1007,8 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         bang.getShare(0)->receive(ROG<T>::otherParty(partyNum));
         bang.getShare(0)->join();
         result.getShare(0)->receive(ROG<T>::otherParty(partyNum));
+        result.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
 
         // while receiving. lets compute...
         // now, dbdx holds (1-2D_b).
@@ -1235,11 +1020,11 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
 
         *bang.getShare(0) *= *bang.getShare(1);
 
-        result.getShare(0)->join();
-        comm_profiler.accumulate("comm-time");
         *result.getShare(0) += *bang.getShare(0);
         *result.getShare(0) += *dbdx.getShare(0);
     }
+
+    comm_profiler.add_comm_round();
 }
 
 template<typename T, typename U, typename I, typename I2, typename I3>
@@ -1287,22 +1072,14 @@ void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k) {
         // DRELU diff -> b
         func_profiler.start();
         ROG<U> b(even.size());
-        dReLU(diff, b);
-        func_profiler.accumulate("maxpool-drelu");
+        ReLU(diff, even, b);
+        func_profiler.accumulate("maxpool-relu");
 
-        //printf("func-maxpool-post-drelu-k=%d\n", k);
         //printMemUsage();
-     
-        // TODO: remove copy.
-        ROG<T> b_T(b.size());
-        thrust::copy(b.getShare(0)->begin(), 
-            b.getShare(0)->end(),
-            b_T.getShare(0)->begin());
-            
-        // selectShare(odd, even, b, even);
-        even -= odd;
-        even *= b_T;
+
+        func_profiler.start();
         even += odd;
+        func_profiler.accumulate("maxpool-calculate");
 
         // unzip even -> into even, odd
         stride *= 2;
@@ -1341,7 +1118,7 @@ void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k) {
      
         // dresult &= expandedB
         func_profiler.start();
-        dresult *= expandedB;
+        dresult &= expandedB;
         func_profiler.accumulate("maxpool-dcalc");
 
         k /= 2;
@@ -1363,29 +1140,13 @@ void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k) {
     // DRELU diff -> b
     func_profiler.start();
     ROG<U> b(even.size());
-    dReLU(diff, b);
-    func_profiler.accumulate("maxpool-z-drelu");
- 
-    func_profiler.start();
-    // TODO: remove copy.
-    ROG<T> b_T(b.size());
-    thrust::copy(b.getShare(0)->begin(), 
-        b.getShare(0)->end(),
-        b_T.getShare(0)->begin());
-        
-    // selectShare(odd, even, b, even);
-    even -= odd;
-    even *= b_T;
-    even += odd;
-    func_profiler.accumulate("maxpool-selectShare");
+    ReLU(diff, even, b);
+    func_profiler.accumulate("maxpool-z-relu");
 
     func_profiler.start();
-    //even *= b;
-    //odd *= negated;
-    //even += odd;
-
     result.zero();
     result += even;
+    result += odd;
     func_profiler.accumulate("maxpool-z-calc");
 
     // -- dMP --
@@ -1401,7 +1162,7 @@ void maxpool(ROG<T, I> &input, ROG<T, I2> &result, ROG<U, I3> &dresult, int k) {
  
     // dresult &= expandedB
     func_profiler.start();
-    dresult *= expandedB;
+    dresult &= expandedB;
     func_profiler.accumulate("maxpool-z-dcalc");
 }
 
@@ -1414,6 +1175,9 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
 
     int a_rows = transpose_a ? K : M; int a_cols = transpose_a ? M : K;
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
+
+    std::cout << "localMatMul first step." << std::endl;
+
     if (!b.offline_known)
     {
         PrecomputeObject.getMatrixBeaverTriple<T, ROG<T> >(x, y, z, a_rows, a_cols, b_rows, b_cols, transpose_a, transpose_b, transpose_c);
@@ -1441,27 +1205,23 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
     }
     else 
     {
-        // printf("-----------------\nOffline branch entered.\n-----------------\n");
         if (partyNum == ROG<uint32_t>::CLIENT) {
-            // TODO: offline phase.
-            DeviceData<T> Zc(c.size()); 
-            Zc.zero();
-
-            c.zero();
-            *c.getShare(0) += Zc;
+            PrecomputeObject.getCorrelatedPairs_matmul<T, ROG<T>>(
+                a, c,
+                a_rows, a_cols, b_rows, b_cols, 
+                transpose_a, transpose_b, transpose_c
+            );
         }
         else if (partyNum == ROG<uint32_t>::SERVER) {
-            // TODO: offline phase.
-            DeviceData<T> Sz(c.size()), Rs(c.size());
-            Sz.zero(), Rs.zero();
+            ROG<T> Sz(c.size());
+            PrecomputeObject.getCorrelatedPairs_matmul<T, ROG<T>>(
+                b, Sz,
+                a_rows, a_cols, b_rows, b_cols, 
+                transpose_a, transpose_b, transpose_c
+            );
 
-            DeviceData<T> a_copy(a.size()), b_copy(b.size());
-            a_copy.zero(), b_copy.zero();
-            a_copy += *a.getShare(0), b_copy += *b.getShare(0);
-            gpu::gemm(M, N, K, &a_copy, transpose_a, &b_copy, transpose_b, c.getShare(0), transpose_c);
-
-            *c.getShare(0) += Sz;
-            *c.getShare(0) -= Rs;
+            gpu::gemm(M, N, K, a.getShare(0), transpose_a, b.getShare(0), transpose_b, c.getShare(0), transpose_c);
+            c += Sz;
         }
     }
 }
@@ -1681,10 +1441,9 @@ void reshare(const ROG<T,I> &in, MTPC<T, I2> &out){
     // TODO: offline.
     int size = in.size();
     
-    if (partyNum == ROG<T>::CLIENT){
-        out.getShare(1)->zero();
-        *out.getShare(1) -= *in.getShare(0);
-    }
+    PrecomputeObject.reshareC_off<
+        T, ROG<T, I>, MTPC<T, I2>
+    > (const_cast<ROG<T, I>& >(in), out);
 
     // online.
     if (partyNum == ROG<T>::SERVER){
@@ -1703,4 +1462,6 @@ void reshare(const ROG<T,I> &in, MTPC<T, I2> &out){
         out.getShare(0)->join();
         comm_profiler.accumulate("comm-time");
     }
+
+    comm_profiler.add_comm_round();
 }

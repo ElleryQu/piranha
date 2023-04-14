@@ -29,6 +29,7 @@ Profiler func_profiler;
 Profiler memory_profiler;
 Profiler comm_profiler;
 Profiler debug_profiler;
+Profiler test_profiler;
 
 nlohmann::json piranha_config;
 

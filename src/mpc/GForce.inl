@@ -659,26 +659,6 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, 
     GFO<T> compare_result(size);
     thrust::copy(bool_result.getShare(0)->begin(), bool_result.getShare(0)->end(), compare_result.getShare(0)->begin());
 
-    std::vector<T> ckpt(size);
-    thrust::copy(r.getShare(0)->begin(), r.getShare(0)->end(), ckpt.begin());
-    std::cout << "A view on z and r:" << std::endl;
-    for (auto t : ckpt) {
-        std::cout << t << " ";
-    }
-    std::cout << std::endl;
-    thrust::copy(rmodd.getShare(0)->begin(), rmodd.getShare(0)->end(), ckpt.begin());
-    std::cout << "A view on zmodd and rmodd:" << std::endl;
-    for (auto t : ckpt) {
-        std::cout << t << " ";
-    }
-    std::cout << std::endl;
-    thrust::copy(compare_result.getShare(0)->begin(), compare_result.getShare(0)->end(), ckpt.begin());
-    std::cout << "A view on private compare result. " << std::endl;
-    for (auto t : ckpt) {
-        std::cout << t << " ";
-    }
-    std::cout << std::endl;
-
     // Step 4: the final step.
     *r.getShare(0) /= denominators;
     if (partyNum == GFO<uint32_t>::SERVER) {   
@@ -698,12 +678,6 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, 
 
         another_input *= compare_result;
         another_input += temp;
-        thrust::copy(another_input.getShare(0)->begin(), another_input.getShare(0)->end(), ckpt.begin());
-        std::cout << "A view on private compare result in A.  " << std::endl;
-        for (auto t : ckpt) {
-            std::cout << t << " ";
-        }
-        std::cout << std::endl;
         result -= another_input;
     }
     if (partyNum == GFO<uint32_t>::CLIENT) {
@@ -713,28 +687,9 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, 
         another_input.fill(0);
         another_input.offline_known = true;
         compare_result *= another_input;
-        thrust::copy(compare_result.getShare(0)->begin(), compare_result.getShare(0)->end(), ckpt.begin());
-        std::cout << "A view on private compare result in A.  " << std::endl;
-        for (auto t : ckpt) {
-            std::cout << t << " ";
-        }
-        std::cout << std::endl;
         result -= compare_result;
     }
     result += r;
-    thrust::copy(r.getShare(0)->begin(), r.getShare(0)->end(), ckpt.begin());
-    std::cout << "z/d - r/d." << std::endl;
-    for (auto t : ckpt) {
-        std::cout << t << " ";
-    }
-    std::cout << std::endl;
-
-    thrust::copy(result.getShare(0)->begin(), result.getShare(0)->end(), ckpt.begin());
-    std::cout << "final output. " << std::endl;
-    for (auto t : ckpt) {
-        std::cout << t << " ";
-    }
-    std::cout << std::endl;
 
     func_profiler.add_comm_round();
 }
@@ -754,8 +709,8 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
 
     // b is used to hold medium result. [[b_{-1}^0, b_0^0, b_1^0, ...], [b_{-1}^1, ...], ...].
     DeviceData<U> b(size * (T_bits_count + 1));
-    // DeviceData<U> test_bits(size * T_bits_count);
     DeviceData<U> delta(size);
+    PrecomputeObject.getCoin<U>(delta);
     b.fill(0), delta.fill(0), result.zero();
 
     // construct a iterator to catch the last T_bits_count bits of b for each element.
@@ -770,13 +725,6 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
     // TODO: int8 support. 
     gpu::bitexpand(input.getShare(0), &bi, T_bits_count + 1);
 
-    // U test[T_bits_count + 1];
-    // thrust::copy(bi.begin() + 2 * T_bits_count, bi.begin() + 3 * T_bits_count, test);
-    // std::cout << "----------- bits of the first element --------------" << std::endl;
-    // for (U t: test) {
-    //     std::cout << t << " ";
-    // }
-    // std::cout << std::endl;
     
     if (partyNum == GFO<uint32_t>::SERVER) {
 
@@ -803,32 +751,9 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         GFO<U> client_input(size * T_bits_count, prime);
         client_input.zero();
         client_input *= bi_xor;
-
-        // thrust::copy(client_input.getShare(0)->begin() + 2 * T_bits_count, client_input.getShare(0)->begin() + 3 * T_bits_count, test);
-        // std::cout << "----------- bits of the bi mult --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
         client_input *= static_cast<U>(-2);
-
-        // thrust::copy(client_input.getShare(0)->begin() + 2 * T_bits_count, client_input.getShare(0)->begin() + 3 * T_bits_count, test);
-        // std::cout << "----------- bits of the bi mult -2 --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
         client_input += bi;
         client_input *= 3;
-
-        // thrust::copy(client_input.getShare(0)->begin() + 2 * T_bits_count, client_input.getShare(0)->begin() + 3 * T_bits_count, test);
-        // std::cout << "----------- bits of the bi_xor --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
 
         // prefix_xor holds \phi_i for each element.
         DeviceData<U> prefix_xor(size * (T_bits_count + 1));
@@ -842,24 +767,10 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         auto key_iter = thrust::make_transform_iterator(count_iter, GFO_key_functor<U>(T_bits_count));
         thrust::exclusive_scan_by_key(key_iter, key_iter + size * (T_bits_count + 1), prefix_reversed_iter, prefix_reversed_iter);
         prefix_xor %= prime;
-
-        // thrust::copy(prefix_xor.begin() + 2 * T_bits_count + 2, prefix_xor.begin() + 3 * (T_bits_count + 1), test);
-        // std::cout << "----------- bits of the prefix xor --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-        
         b += prefix_xor;  
         b += alpha;  
         b %= prime;
 
-        // thrust::copy(b.begin() + 2 * T_bits_count + 2, b.begin() + 3 * (T_bits_count + 1), test);
-        // std::cout << "----------- bits of the bs --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
 
         // MILL step 4: transmission.
         comm_profiler.start();
@@ -883,32 +794,9 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         server_input.fill(0);
         server_input.offline_known = true;
         bi_xor *= server_input;
-
-        // thrust::copy(bi_xor.getShare(0)->begin() + 2 * T_bits_count, bi_xor.getShare(0)->begin() + 3 * T_bits_count, test);
-        // std::cout << "----------- bits of the bi mult --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
         bi_xor *= static_cast<U>(-2);
-
-        // thrust::copy(bi_xor.getShare(0)->begin() + 2 * T_bits_count, bi_xor.getShare(0)->begin() + 3 * T_bits_count, test);
-        // std::cout << "----------- bits of the bi mult -2 --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
         *bi_xor.getShare(0) += bi;
         bi_xor *= 3;
-
-        // thrust::copy(bi_xor.getShare(0)->begin() + 2 * T_bits_count, bi_xor.getShare(0)->begin() + 3 * T_bits_count, test);
-        // std::cout << "----------- bits of the bi_xor --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
         
         // prefix_xor holds \phi_i for each element.
         DeviceData<U> prefix_xor(size * (T_bits_count + 1));
@@ -922,24 +810,9 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         auto key_iter = thrust::make_transform_iterator(count_iter, GFO_key_functor<U>(T_bits_count));
         thrust::exclusive_scan_by_key(key_iter, key_iter + size * (T_bits_count + 1), prefix_reversed_iter, prefix_reversed_iter);
         prefix_xor %= prime;
-
-        // thrust::copy(prefix_xor.begin() + 2 * T_bits_count + 2, prefix_xor.begin() + 3 * (T_bits_count + 1), test);
-        // std::cout << "----------- bits of the prefix xor --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
         b *= static_cast<U>(-1 + prime);
         b += prefix_xor;  
         b %= prime;
-
-        // thrust::copy(b.begin() + 2 * T_bits_count + 2, b.begin() + 3 * (T_bits_count + 1), test);
-        // std::cout << "----------- bits of the bc --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
 
         // MILL step 4: recieve.
         DeviceData<U> recvb(size * (T_bits_count + 1));
@@ -950,20 +823,6 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         b += recvb;
         b %= prime;
 
-        // thrust::copy(b.begin() + 2 * T_bits_count + 2, b.begin() + 3*(T_bits_count + 1), test);
-        // std::cout << "----------- bits of the recv bs --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
-        // thrust::copy(b.begin() + 2 * T_bits_count, b.begin() + 3*(T_bits_count + 1), test);
-        // std::cout << "----------- bits of the b --------------" << std::endl;
-        // for (U t: test) {
-        //     std::cout << t << " ";
-        // }
-        // std::cout << std::endl;
-
         // MILL step 5: CLIENT check if there is any 0.
         // TODO: combine transform and reduce.
         thrust::transform(b.begin(), b.end(), b.begin(), is_not_a_functor<T>(0));
@@ -971,7 +830,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         auto binary_op = [prime](U x, U y) -> U {U z = x * y; return z % prime;};
         thrust::reduce_by_key(key_iter, key_iter + size * (T_bits_count + 1), b.begin(), b.begin(), result.getShare(0)->begin(), binary_pred, GFO_mult_and_modular_functor<U>(prime));
     }
-    func_profiler.add_comm_round();
+    func_profiler.add_comm_round(2);
 }
 
 // open a field element 'in' into 'out'. If 'to_fxp' is true, convert 'out' into ring.
@@ -1183,42 +1042,41 @@ void localFprop(const GFO<T> &A, const GFO<T> &B, GFO<T> &C,
     }
     else
     {
-        // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // SERVER: r^S.     
         // CLIENT: w*r^C-r^S.
-        DeviceData<T> offline_output(C.size());
-        offline_output.fill(0);
-
-        // SERVER: x-r^C.   
+        GFO<T> offline_output(C.size());
+        // SERVER: 0.   
         // CLIENT: r^C.
-        DeviceData<T> r(A.size());
-        r.fill(0);
+        GFO<T> r(A.size());
+        PrecomputeObject.getCorrelatedRandomness_fprop<T, GFO<T> >(
+            B, offline_output, r,
+            batchSize, imageHeight, imageWidth, Din,
+            Dout, filterHeight, filterWidth,
+            paddingHeight, paddingWidth,
+            stride, dilation
+        );
+
         if (partyNum == GFO<uint32_t>::CLIENT) {
-            r -= *A.getShare(0);
+            r -= A;
             r *= static_cast<T>(-1);
-            r %= prime;
             comm_profiler.start();
-            r.transmit(GFO<T>::otherParty(partyNum));
-            r.join();
+            r.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
+            r.getShare(0)->join();
             comm_profiler.accumulate("comm-time");
-            *C.getShare(0) += offline_output;
-            C %= prime;
+            C += offline_output;
         }
         else if (partyNum == GFO<uint32_t>::SERVER) {
+            r.getShare(0)->receive(GFO<T>::otherParty(partyNum));
             comm_profiler.start();
-            r.receive(GFO<T>::otherParty(partyNum));
-            r.join();
+            r.getShare(0)->join();
             comm_profiler.accumulate("comm-time");
-            r += *A.getShare(0);
-            DeviceData<T> b_copy(B.size());
-            b_copy += *B.getShare(0);
-            gpu::conv_fprop(&r, &b_copy, C.getShare(0), 
+            r += A;
+            gpu::conv_fprop(r.getShare(0), B.getShare(0), C.getShare(0), 
                 batchSize, imageHeight, imageWidth, Din,
                 Dout, filterHeight, filterWidth,
                 paddingHeight, paddingWidth,
                 stride, dilation);
-            *C.getShare(0) += offline_output;
-            C %= prime;
+            C += offline_output;
         }
         cudaThreadSynchronize();
 
@@ -1679,7 +1537,6 @@ void localMatMul(const GFO<T> &a, const GFO<T> &b, GFO<T> &c,
     }
     else 
     {
-        // printf("-----------------\nOffline branch entered.\n-----------------\n");
         // SERVER: r^S.     
         // CLIENT: w*r^C-r^S.
         GFO<T> offline_output(c.size());

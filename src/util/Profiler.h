@@ -25,12 +25,16 @@ public:
     double get_max_mem_mb();
     
     void add_comm_round();
+    void add_comm_round(int r);
     void dump_comm_rounds();
+    int get_rounds();
 
     void add_comm_bytes(size_t bytes, bool tx);
     size_t get_comm_tx_bytes();
     size_t get_comm_rx_bytes();
     void dump_comm_bytes();
+
+    void pause();
 
 private:
 
@@ -38,6 +42,7 @@ private:
     std::chrono::time_point<std::chrono::system_clock> start_time;
     std::map<std::string, double> accumulators;
     double total;
+    double _paused_time = 0;
 
     double mem_mb;
     std::vector<std::pair<double, double> > tags;

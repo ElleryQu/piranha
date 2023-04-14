@@ -63,8 +63,6 @@
     }
 
 extern int partyNum;
-extern Profiler func_profiler;
-extern Profiler comm_profiler;
 
 extern size_t INPUT_SIZE, LAST_LAYER_SIZE, WITH_NORMALIZATION;
 extern void getBatch(std::ifstream &, std::istream_iterator<double> &, std::vector<double> &);

@@ -10,6 +10,10 @@
 
 extern std::vector<AESObject*> aes_objects;
 
+extern Profiler comm_profiler;
+extern Profiler func_profiler;
+extern Profiler test_profiler;
+
 class Precompute
 {
     private:
@@ -102,6 +106,47 @@ class Precompute
             const Share& w, Share& out1, Share& out2,
             int a_rows, int a_cols, int b_rows, int b_cols,
             bool transpose_a, bool transpose_b, bool transpose_c
+        );
+
+        template<typename T, typename Share>
+        void getCorrelatedRandomness_fprop(
+            const Share& w, Share& out1, Share& out2,
+            int batchSize, int imageHeight, int imageWidth, int Din,
+            int Dout, int filterHeight, int filterWidth,
+            int paddingHeight, int paddingWidth,
+            int stride, int dilation
+        );
+
+        template<typename T, typename ShareBase1, typename ShareBase2, typename Share>
+        void getCorrelatedPairs(
+            const ShareBase1& in, ShareBase2& out
+        );
+
+        template<typename T, typename Share>
+        void getCorrelatedPairs_matmul(
+            const Share& in, Share& out,
+            int a_rows, int a_cols, int b_rows, int b_cols,
+            bool transpose_a, bool transpose_b, bool transpose_c
+        );
+
+        template<typename T, typename Share>
+        void getCorrelatedPairs_fprop(
+            const Share& in, Share& out,
+            int batchSize, int imageHeight, int imageWidth, int Din,
+            int Dout, int filterHeight, int filterWidth,
+            int paddingHeight, int paddingWidth,
+            int stride, int dilation
+        );
+
+        template<typename T, typename Share, typename Share2>
+        void reshareC_off(
+            const Share& in, Share2& out
+        );
+
+        template<typename T, typename Share, typename Share2, typename Share3, typename Share4>
+        void FusionMux_off(
+            const Share& x, const Share2& tb,
+            Share2& dbdx, Share2& db, Share3& bang, Share4& z
         );
 };
 

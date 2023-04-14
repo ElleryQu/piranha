@@ -14,6 +14,7 @@ void Profiler::clear() {
     running = false;
     total = 0;
     accumulators.clear();
+    _paused_time = 0;
 
     mem_mb = 0.0;
     max_mem_mb = 0.0;
@@ -33,8 +34,12 @@ void Profiler::accumulate(std::string tag) {
             std::chrono::system_clock::now() - start_time
         ).count();
 
+        us_elapsed += _paused_time;
+
         accumulators[tag] += us_elapsed / 1000.0;
         total += us_elapsed / 1000.0;
+
+        _paused_time = 0;
     }
 }
 
@@ -92,10 +97,20 @@ double Profiler::get_max_mem_mb() {
     return max_mem_mb;
 }
 
+int Profiler::get_rounds() {
+    return rounds;
+}
+
 void Profiler::add_comm_round() {
-    if (!running) return;
+    // if (!running) return;
 
     rounds++;
+}
+
+void Profiler::add_comm_round(int r) {
+    // if (!running) return;
+
+    rounds += r;
 }
 
 void Profiler::dump_comm_rounds() {
@@ -126,3 +141,12 @@ void Profiler::dump_comm_bytes() {
     std::cout << std::endl << "-------------------" << std::endl;
 }
 
+void Profiler::pause() {
+    if (running) {
+        running = false;
+
+        _paused_time += std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - start_time
+        ).count();
+    }
+}

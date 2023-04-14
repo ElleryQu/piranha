@@ -86,6 +86,8 @@ void MTPCBase<T, I>::setPublic(std::vector<double> &v) {
             comm_profiler.accumulate("comm-time");
             break;
     }
+
+    comm_profiler.add_comm_round();
 };
 
 template<typename T, typename I>
@@ -216,6 +218,8 @@ MTPCBase<T, I> &MTPCBase<T, I>::operator-=(const MTPCBase<T, I2> &rhs) {
 template<typename T, typename I>
 template<typename I2>
 MTPCBase<T, I> &MTPCBase<T, I>::operator*=(const MTPCBase<T, I2> &rhs) {
+
+    std::cout << "to be done. you shouldn't be here..." << std::endl;
 
     size_t size = rhs.size();
 
