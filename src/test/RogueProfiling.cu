@@ -8,8 +8,6 @@ extern Profiler comm_profiler;
 extern Profiler func_profiler;
 extern Profiler test_profiler;
 
-extern std::default_random_engine generator;
-
 #define TEST_USLEEP_TIME 0
 #define OFFLINE_KNOWN true
 #define EXP_TIMES 10
@@ -18,8 +16,6 @@ template<typename T>
 struct EvalTest: public testing::Test {
     using ParamType = T;
 };
-
-extern void random_vector(std::vector<double> &v, int size);
 
 using Types = testing::Types<TPC<uint64_t>, GFO<uint64_t>, ROG<uint64_t> >;
 

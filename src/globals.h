@@ -17,7 +17,7 @@
 
 // MPC globals
 #ifndef FLOAT_PRECISION
-#define FLOAT_PRECISION 12
+#define FLOAT_PRECISION 11
 #endif
 #define GFORCE_BOUND (uint64_t) 1 << 20
 #define ROGUE_BOUND (uint64_t) 1 << 20

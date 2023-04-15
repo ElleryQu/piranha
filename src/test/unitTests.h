@@ -73,6 +73,9 @@ extern std::string profiling_path;
 extern std::ofstream pf;
 #endif
 
+extern std::default_random_engine generator;
+extern void random_vector(std::vector<double> &v, int size);
+
 int runTests(int argc, char **argv);
 
 // template<typename T1, typename T2>

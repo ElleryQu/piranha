@@ -555,27 +555,11 @@ void GFO<T, BufferIterator<T> >::resize(size_t n) {
 template<typename T, typename I>
 void dividePublic(GFO<T, I> &a, T denominator) {
     int size = a.size();
-    size_t prime = a.prime;
 
-    #ifdef HIGH_Q
-    // x/d = (r_x-m_x*q)/d. if x<0, then x/d = (r_x-q)/d.
-    // qdd = 1{x<0}*(q/d - q).
-    DeviceData<T> qdd(size);
-    qdd.zero();
-    // wrong.
-    qdd += *a.getShare(0);
-    qdd /= static_cast<T>((prime + 1) / 2);
-    qdd *= static_cast<T>(prime / denominator);
-    *a.getShare(0) /= denominator;
-    *a.getShare(0) -= qdd;
-    *a.getShare(0) += prime;
-    a %= prime;
-
-    // *a.getShare(0) /= denominator;
-    #else
-    // TODO: implement GForce native solution.
+    thrust::constant_iterator<T> const_iter(denominator);
+    DeviceData<T, decltype(const_iter)> denominators(const_iter, const_iter + size);
     
-    #endif
+    dividePublic(a, denominators);
 }
 
 template<typename T, typename I, typename I2>
@@ -584,19 +568,85 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
     assert(denominators.size() == a.size() && "GFO dividePublic powers size mismatch");
 
     int size = a.size();
+    a += 1 << (l - 1);
+    auto prime = a.prime;
 
-    DeviceData<T> xsign(size);
-    DeviceData<T> qdd(size);
-    xsign.zero();
-    qdd.fill(a.prime);
-    // wrong.
-    xsign += *a.getShare(0);
-    xsign /= (a.prime-1)/2 + 1;
-    qdd /= denominators;
-    qdd -= a.prime;
-    qdd *= xsign;
-    *a.getShare(0) /= denominators;
-    *a.getShare(0) -= qdd;
+    // step 1:  SERVER samples r and send xs + r to CLIENT.
+    //          CLIENT computes z = x + r.
+    GFO<T> r(size);
+    PrecomputeObject.getRandomNumber<T, GFO<T>>(r);
+    if (partyNum == GFO<uint32_t>::SERVER) {
+        a += r;
+        comm_profiler.start();
+        a.getShare(0)->transmit(GFO<T>::otherParty(partyNum));
+        a.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
+    }
+    else if (partyNum == GFO<uint32_t>::CLIENT) {
+        comm_profiler.start();
+        r.getShare(0)->receive(GFO<T>::otherParty(partyNum));
+        r.getShare(0)->join();
+        comm_profiler.accumulate("comm-time");
+        // compute z.
+        r += a;
+    }
+    a.zero();
+
+    // step 2: wrap.
+    if (partyNum == GFO<uint32_t>::SERVER) {
+        GFO<T> r2(size);
+        r2.offline_known = true;
+        r2.zero();
+        r2 += r;
+        thrust::transform(
+            r2.getShare(0)->begin(), r2.getShare(0)->end(),
+            thrust::make_constant_iterator((q - 1) / 2),
+            r2.getShare(0)->begin(),
+            thrust::greater_equal<T>()
+        );
+
+        GFO<T> anotherr(size);
+        anotherr.zero();
+        anotherr *= r2;
+        DeviceData<T>* ddq = r2.getShare(0);
+        ddq->fill(q);
+        *ddq /= denominators;
+        anotherr *= *ddq;
+        a += anotherr;
+    }
+    else if (partyNum == GFO<uint32_t>::CLIENT) {
+        GFO<T> r2(size);
+        r2.offline_known = true;
+        r2.zero();
+        r2 += r;
+        thrust::transform(
+            r2.getShare(0)->begin(), r2.getShare(0)->end(),
+            thrust::make_constant_iterator((q - 1) / 2),
+            r2.getShare(0)->begin(),
+            thrust::less<T>()
+        );
+
+        GFO<T> anotherr(size);
+        anotherr.offline_known = true;
+        r2 *= anotherr;
+        DeviceData<T>* ddq = anotherr.getShare(0);
+        ddq->fill(q);
+        *ddq /= denominators;
+        r2 *= *ddq;
+        a += r2;
+    }
+
+    // step 3: the final step.
+    *r.getShare(0) /= denominators;
+    if (partyNum == GFO<uint32_t>::SERVER) {   
+        r *= static_cast<T>(-1);
+    }
+    a += r;
+    DeviceData<T> dq(size);
+    dq.zero();
+    dq += 1 << (l - 1);
+    dq /= denominators;
+    a -= dq;
 }
 
 template<typename T, typename U, typename I, typename I2>

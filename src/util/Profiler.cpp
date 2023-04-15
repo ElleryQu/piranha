@@ -120,6 +120,8 @@ void Profiler::dump_comm_rounds() {
 }
 
 void Profiler::add_comm_bytes(size_t bytes, bool tx) {
+    if (!running) return;
+    
     if (tx) {
         bytes_tx += bytes;
     } else {

@@ -22,24 +22,19 @@ int runTests(int argc, char **argv) {
     return RUN_ALL_TESTS();
 }
 
-// template<typename T1, typename T2>
-// void writeProfile(
-//     std::ofstream& pf, 
-//     std::string prot, 
-//     std::string func,
-//     T1 input_size,
-//     string question_scale,
-//     T2 online_comp_time,
-//     T1 online_comm_rounds,
-//     T2 online_comm_tx_size,
-//     T2 online_comm_rx_size,
-//     T2 online_comm_time
-// ) {
-//     pf << prot << '\t' << prot << '\t' << func << '\t' << input_size << '\t' \
-//         << question_scale << '\t' << online_comp_time << '\t' << online_comm_rounds \
-//         << '\t' << online_comm_tx_size << '\t' << online_comm_rx_size << '\t'\
-//         << online_comm_time << std::endl;
-// }
+std::default_random_engine generator(0xffa0);
+
+void random_vector(std::vector<double> &v, int size) {
+
+    std::normal_distribution<double> distribution(0.0, 1.0);
+
+    v.clear();
+    v.resize(size);
+
+    for (int i = 0; i < v.size(); i++) {
+        v[i] = distribution(generator);
+    }
+}
 
 // -- TPC Tests --
 

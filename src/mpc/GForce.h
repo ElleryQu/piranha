@@ -12,7 +12,7 @@
 #include "../gpu/DeviceData.h"
 #include "../globals.h"
 
-static uint64_t p = 257;
+static uint64_t p = 251;
 /**
  * It is difficult to choose a appropriate prime p in Piranha:
  * as we know, a fxp is embedded in a field element, and the field
@@ -24,13 +24,13 @@ static uint64_t p = 257;
  *     e_0 error. However, GForce gives a nearly faithful truncation 
  *     protocol. 
 */
-// // 23 bit.
-// static uint64_t q = 7340033;
-// // 24 bit. Supports 2^16 times addition.
-// static uint64_t q = 11022156;
-#define HIGH_Q false
-// 31 bits.
-static uint64_t q = 2138816513;
+// // unit test only.
+// // 31 bits prime, l = 27, fxp_len = 11.
+// static uint64_t l = 27;
+// static uint64_t q = 2013265921;
+// 28 bits prime, l = 25, fxp_len = 8.
+static uint64_t l = 25;
+static uint64_t q = 167772161;
 
 template <typename T, typename I>
 class GFOBase {
