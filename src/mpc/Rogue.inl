@@ -485,18 +485,20 @@ void dividePublic_no_off1(ROG<T, I> &a, DeviceData<T, I2> &denominators, ROG<U, 
     }
 
     // step 2:  SERVER and CLIENT run a millionaire's protocol.
-    using SRIterator = typename StridedRange<I>::iterator;
-    ROG<T> rmodd(size);
-    rmodd.zero();
-    rmodd += r;
-    *rmodd.getShare(0) %= denominators;
-
-    // step 3: compute <1{rmodd <= zmodd}>_2
-    GFO<T> rmodd_(rmodd.getShare(0));
     GFO<U> bool_result(size);
-    bool_result.zero();
-    privateCompare(rmodd_, bool_result);
     ROG<U> compare_result(bool_result.getShare(0));
+
+    {
+        ROG<T> rmodd(size);
+        rmodd.zero();
+        rmodd += r;
+        *rmodd.getShare(0) %= denominators;
+
+        // step 3: compute <1{rmodd <= zmodd}>_2
+        GFO<T> rmodd_(rmodd.getShare(0));
+        bool_result.zero();
+        privateCompare(rmodd_, bool_result);
+    }
 
     // Step 4: the final step.
     *r.getShare(0) /= denominators;
@@ -1175,8 +1177,6 @@ void localMatMul(const ROG<T> &a, const ROG<T> &b, ROG<T> &c,
 
     int a_rows = transpose_a ? K : M; int a_cols = transpose_a ? M : K;
     int b_rows = transpose_b ? N : K; int b_cols = transpose_b ? K : N;
-
-    std::cout << "localMatMul first step." << std::endl;
 
     if (!b.offline_known)
     {

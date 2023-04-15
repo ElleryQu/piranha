@@ -585,7 +585,6 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
 
     int size = a.size();
 
-    #ifdef HIGH_Q
     DeviceData<T> xsign(size);
     DeviceData<T> qdd(size);
     xsign.zero();
@@ -597,13 +596,7 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
     qdd -= a.prime;
     qdd *= xsign;
     *a.getShare(0) /= denominators;
-    // if (partyNum == GFO<uint32_t>::SERVER) 
-    // {
-        *a.getShare(0) -= qdd;
-    // }
-    #else
-    // TODO: implement GForce native solution.
-    #endif
+    *a.getShare(0) -= qdd;
 }
 
 template<typename T, typename U, typename I, typename I2>
@@ -647,19 +640,65 @@ void dividePublic_no_off1(GFO<T, I> &a, DeviceData<T, I2> &denominators, GFO<T, 
     }
 
     // step 2:  SERVER and CLIENT run a millionaire's protocol.
-    using SRIterator = typename StridedRange<I>::iterator;
-    GFO<T> rmodd(size);
-    rmodd.zero();
-    rmodd += r;
-    *rmodd.getShare(0) %= denominators;
-
-    // step 3: compute <1{rmodd <= zmodd}>_2
-    GFO<U> bool_result(size);
-    privateCompare<T, U, I, BufferIterator<U>>(rmodd, bool_result);
     GFO<T> compare_result(size);
-    thrust::copy(bool_result.getShare(0)->begin(), bool_result.getShare(0)->end(), compare_result.getShare(0)->begin());
 
-    // Step 4: the final step.
+    {
+        GFO<T> rmodd(size);
+        rmodd.zero();
+        rmodd += r;
+        *rmodd.getShare(0) %= denominators;
+
+        // step 3: compute <1{rmodd <= zmodd}>_2
+        GFO<U> bool_result(size);
+        privateCompare<T, U, I, BufferIterator<U>>(rmodd, bool_result);
+        thrust::copy(bool_result.getShare(0)->begin(), bool_result.getShare(0)->end(), compare_result.getShare(0)->begin());
+    }
+
+    // step 4: wrap.
+    if (partyNum == GFO<uint32_t>::SERVER) {
+        GFO<T> r2(size);
+        r2.offline_known = true;
+        r2.zero();
+        r2 += r;
+        thrust::transform(
+            r2.getShare(0)->begin(), r2.getShare(0)->end(),
+            thrust::make_constant_iterator((q - 1) / 2),
+            r2.getShare(0)->begin(),
+            thrust::greater_equal<T>()
+        );
+
+        GFO<T> anotherr(size);
+        anotherr.zero();
+        anotherr *= r2;
+        DeviceData<T>* ddq = r2.getShare(0);
+        ddq->fill(q);
+        *ddq /= denominators;
+        anotherr *= *ddq;
+        result += anotherr;
+    }
+    else if (partyNum == GFO<uint32_t>::CLIENT) {
+        GFO<T> r2(size);
+        r2.offline_known = true;
+        r2.zero();
+        r2 += r;
+        thrust::transform(
+            r2.getShare(0)->begin(), r2.getShare(0)->end(),
+            thrust::make_constant_iterator((q - 1) / 2),
+            r2.getShare(0)->begin(),
+            thrust::less<T>()
+        );
+
+        GFO<T> anotherr(size);
+        anotherr.offline_known = true;
+        r2 *= anotherr;
+        DeviceData<T>* ddq = anotherr.getShare(0);
+        ddq->fill(q);
+        *ddq /= denominators;
+        r2 *= *ddq;
+        result += r2;
+    }
+
+    // step 5: the final step.
     *r.getShare(0) /= denominators;
     if (partyNum == GFO<uint32_t>::SERVER) {   
         r *= static_cast<T>(-1);
@@ -810,7 +849,7 @@ void privateCompare(GFO<T, I> &input, GFO<U, I2> &result) {
         auto key_iter = thrust::make_transform_iterator(count_iter, GFO_key_functor<U>(T_bits_count));
         thrust::exclusive_scan_by_key(key_iter, key_iter + size * (T_bits_count + 1), prefix_reversed_iter, prefix_reversed_iter);
         prefix_xor %= prime;
-        b *= static_cast<U>(-1 + prime);
+        b *= static_cast<U>(prime - 1);
         b += prefix_xor;  
         b %= prime;
 

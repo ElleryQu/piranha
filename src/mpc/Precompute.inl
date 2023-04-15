@@ -251,7 +251,9 @@ void Precompute::getMatrixBeaverTriple(Share &x, Share &y, Share &z,
 		z.fill(shared);
 	}
 	else {
-		T rx[x.size()], ry[y.size()], rz[z.size()];
+		T* rx = new T[x.size()];
+		T* ry = new T[y.size()];
+		T* rz = new T[z.size()];
 		// generate my randomness.
 		aes_objects[partyNum]->getRandom(rx, x.size());
 		aes_objects[partyNum]->getRandom(ry, y.size());
@@ -288,6 +290,10 @@ void Precompute::getMatrixBeaverTriple(Share &x, Share &y, Share &z,
 			gpu::gemm(rows, cols, shared, vx.getShare(0), transpose_a, vy.getShare(0), transpose_b, vz.getShare(0), transpose_c);
 			z += vz;
 		}
+
+		delete []rx;
+		delete []ry;
+		delete []rz;
 	}
 
 	comm_profiler.start();
@@ -319,7 +325,10 @@ void Precompute::getConvBeaverTriple_fprop(Share &x, Share &y, Share &z,
 		z.fill(0);
 	}
 	else {
-		T rx[x.size()], ry[y.size()], rz[z.size()];
+		T* rx = new T[x.size()];
+		T* ry = new T[y.size()];
+		T* rz = new T[z.size()];
+
 		// generate my randomness.
 		aes_objects[partyNum]->getRandom(rx, x.size());
 		aes_objects[partyNum]->getRandom(ry, y.size());
@@ -372,6 +381,10 @@ void Precompute::getConvBeaverTriple_fprop(Share &x, Share &y, Share &z,
 				stride, dilation);
 			z += vz;
 		}
+
+		delete []rx;
+		delete []ry;
+		delete []rz;
 	}
 
 	comm_profiler.start();
@@ -403,7 +416,10 @@ void Precompute::getConvBeaverTriple_dgrad(Share &x, Share &y, Share &z,
 		z.fill(0);
 	}
 	else {
-		T rx[x.size()], ry[y.size()], rz[z.size()];
+		T* rx = new T[x.size()];
+		T* ry = new T[y.size()];
+		T* rz = new T[z.size()];
+
 		// generate my randomness.
 		aes_objects[partyNum]->getRandom(rx, x.size());
 		aes_objects[partyNum]->getRandom(ry, y.size());
@@ -456,6 +472,10 @@ void Precompute::getConvBeaverTriple_dgrad(Share &x, Share &y, Share &z,
 				imageHeight, imageWidth);
 			z += vz;
 		}
+
+		delete []rx;
+		delete []ry;
+		delete []rz;
 	}
 
 	comm_profiler.start();
@@ -487,7 +507,10 @@ void Precompute::getConvBeaverTriple_wgrad(Share &x, Share &y, Share &z,
 		z.fill(0);
 	}
 	else {
-		T rx[x.size()], ry[y.size()], rz[z.size()];
+		T* rx = new T[x.size()];
+		T* ry = new T[y.size()];
+		T* rz = new T[z.size()];
+
 		// generate my randomness.
 		aes_objects[partyNum]->getRandom(rx, x.size());
 		aes_objects[partyNum]->getRandom(ry, y.size());
@@ -540,6 +563,10 @@ void Precompute::getConvBeaverTriple_wgrad(Share &x, Share &y, Share &z,
 				paddingHeight, paddingWidth, stride, dilation);
 			z += vz;
 		}
+
+		delete []rx;
+		delete []ry;
+		delete []rz;
 	}
 
 	comm_profiler.start();
@@ -609,7 +636,9 @@ void Precompute::getCorrelatedRandomness_matmul(
 	int cols = transpose_b ? b_rows : b_cols;
 
 	// random1: Rs. random2: Rc.
-	T random1[out1.size()], random2[out2.size()];	
+	T* random1 = new T[out1.size()];
+	T* random2 = new T[out2.size()];
+
 	aes_objects[0]->getRandom(random1, out1.size());
 	aes_objects[1]->getRandom(random2, out2.size());
 	thrust::copy(random1, random1 + out1.size(), out1.getShare(0)->begin());
@@ -630,6 +659,9 @@ void Precompute::getCorrelatedRandomness_matmul(
 		out1.getShare(0)->receive(0);
 		out1.getShare(0)->join();
 	}
+
+	delete [] random1;
+	delete [] random2;
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -653,7 +685,9 @@ void Precompute::getCorrelatedRandomness_fprop(
 	test_profiler.pause();
 
 	// random1: Rs. random2: Rc.
-	T random1[out1.size()], random2[out2.size()];	
+	T* random1 = new T[out1.size()];
+	T* random2 = new T[out2.size()];
+
 	aes_objects[0]->getRandom(random1, out1.size());
 	aes_objects[1]->getRandom(random2, out2.size());
 	thrust::copy(random1, random1 + out1.size(), out1.getShare(0)->begin());
@@ -678,6 +712,9 @@ void Precompute::getCorrelatedRandomness_fprop(
 		out1.getShare(0)->receive(0);
 		out1.getShare(0)->join();
 	}
+
+	delete [] random1;
+	delete [] random2;
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -759,8 +796,6 @@ void Precompute::getCorrelatedPairs_matmul(
 
 	int cols = transpose_b ? b_rows : b_cols;
 
-	std::cout << "offline here." << std::endl;
-
 	// // Server. out = s_Z.
 	if (partyNum == 0) {
 		// [X]^C.
@@ -768,7 +803,7 @@ void Precompute::getCorrelatedPairs_matmul(
 		Xc.getShare(0)->receive(1);
 
 		// R^C.
-		T otherr[out.size()];
+		T* otherr = new T[out.size()];
 		aes_objects[1-partyNum]->getRandom(otherr, out.size());
 		thrust::copy(otherr, otherr + out.size(), out.getShare(0)->begin());
 
@@ -777,6 +812,8 @@ void Precompute::getCorrelatedPairs_matmul(
 		gpu::gemm(rows, cols, shared, Xc.getShare(0), transpose_a, in.getShare(0), transpose_b, temp.getShare(0), transpose_c);
 		out *= static_cast<T>(-1);
 		out += temp;
+
+		delete [] otherr;
 	}
 	// Client. out = [z]^C.
 	else if (partyNum == 1) {
@@ -787,9 +824,10 @@ void Precompute::getCorrelatedPairs_matmul(
 		Xc.getShare(0)->transmit(0);
 		Xc.getShare(0)->join();
 
-		T myr[out.size()];	
+		T* myr = new T[out.size()];	
 		aes_objects[partyNum]->getRandom(myr, out.size());
 		thrust::copy(myr, myr + out.size(), out.getShare(0)->begin());
+		delete [] myr;
 	}
 
 	comm_profiler.start();
@@ -823,7 +861,7 @@ void Precompute::getCorrelatedPairs_fprop(
 		Xc.getShare(0)->receive(1);
 
 		// R^C.
-		T otherr[out.size()];
+		T* otherr = new T[out.size()];	
 		aes_objects[1-partyNum]->getRandom(otherr, out.size());
 		thrust::copy(otherr, otherr + out.size(), out.getShare(0)->begin());
 
@@ -836,6 +874,8 @@ void Precompute::getCorrelatedPairs_fprop(
 			stride, dilation);
 		out *= static_cast<T>(-1);
 		out += temp;
+
+		delete [] otherr;
 	}
 	// Client. out = [z]^C.
 	else if (partyNum == 1) {
@@ -846,9 +886,11 @@ void Precompute::getCorrelatedPairs_fprop(
 		Xc.getShare(0)->transmit(0);
 		Xc.getShare(0)->join();
 
-		T myr[in.size()];	
+		T* myr = new T[out.size()];	
 		aes_objects[partyNum]->getRandom(myr, in.size());
 		thrust::copy(myr, myr + in.size(), out.getShare(0)->begin());
+		
+		delete [] myr;
 	}
 
 	comm_profiler.start();
@@ -872,16 +914,22 @@ void Precompute::reshareC_off(
 
 	// Server. out = s_Z.
 	if (partyNum == 0) {
-		T myr[out.size()];
+		T* myr = new T[out.size()];	
+
 		aes_objects[partyNum]->getRandom(myr, out.size());
 		thrust::copy(myr, myr + out.size(), out.getShare(1)->begin());
+
+		delete [] myr;
 	}
 	else if (partyNum == 1) {
-		T otherr[out.size()];
+		T* otherr = new T[out.size()];	
+
 		aes_objects[1-partyNum]->getRandom(otherr, out.size());
 
 		out.zero();
 		*out.getShare(1) -= *in.getShare(0);
+
+		delete [] otherr;
 	}
 
 	comm_profiler.start();
@@ -913,7 +961,7 @@ void Precompute::FusionMux_off(
 		*bang.getShare(1) += *tb.getShare(0);
 
 		// bit2A: db.
-		T anotherr[size];
+		T* anotherr = new T[size];	
 		aes_objects[1-partyNum]->getRandom(anotherr, size);
 		thrust::copy(anotherr, anotherr + size, db.getShare(0)->begin());
 		*db.getShare(0) &= 1;
@@ -935,10 +983,13 @@ void Precompute::FusionMux_off(
 
 		aes_objects[1-partyNum]->getRandom(anotherr, size);
 		z.zero();
+
+		delete [] anotherr;
 	}
 	// Client.
 	else if (partyNum == 1) {
-		T myr[size];
+		T* myr = new T[size];	
+
 		aes_objects[partyNum]->getRandom(myr, size);
 		thrust::copy(myr, myr + size, bang.getShare(1)->begin());
 		*bang.getShare(1) &= 1;
@@ -957,6 +1008,8 @@ void Precompute::FusionMux_off(
 
 		aes_objects[partyNum]->getRandom(myr, size);
 		thrust::copy(myr, myr + size, z.getShare(0)->begin());
+
+		delete [] myr;
 	}
 
 	comm_profiler.start();
