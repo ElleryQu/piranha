@@ -616,7 +616,6 @@ void dividePublic(GFO<T, I> &a, DeviceData<T, I2> &denominators) {
     }
     else if (partyNum == GFO<uint32_t>::CLIENT) {
         GFO<T> r2(size);
-        r2.offline_known = true;
         r2.zero();
         r2 += r;
         thrust::transform(

@@ -9,12 +9,14 @@ void Precompute::getRandomNumber(Share &r) {
 	func_profiler.pause();
 	test_profiler.pause();
 
-	T rr[r.size()];
+	T* rr = new T[r.size()];
 	// align AES step.
 	aes_objects[1-partyNum]->getRandom(rr, r.size());
 	aes_objects[partyNum]->getRandom(rr, r.size());
 	thrust::copy(rr, rr + r.size(), r.getShare(0)->begin());
 	r *= 1;
+
+	delete [] rr;
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -28,11 +30,13 @@ void Precompute::getRandomNumber(DeviceData<T> &r) {
 	func_profiler.pause();
 	test_profiler.pause();
 
-	T rr[r.size()];
+	T* rr = new T[r.size()];
 	// align AES step.
 	aes_objects[1-partyNum]->getRandom(rr, r.size());
 	aes_objects[partyNum]->getRandom(rr, r.size());
 	thrust::copy(rr, rr + r.size(), r.begin());
+
+	delete [] rr;
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -46,12 +50,14 @@ void Precompute::getCoin(Share &r) {
 	func_profiler.pause();
 	test_profiler.pause();
 
-	T rr[r.size()];
+	T* rr = new T[r.size()];
 	// align AES step.
 	aes_objects[1-partyNum]->getRandom(rr, r.size());
 	aes_objects[partyNum]->getRandom(rr, r.size());
 	thrust::copy(rr, rr + r.size(), r.getShare(0)->begin());
 	r &= 1;
+
+	delete [] rr;
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -65,12 +71,14 @@ void Precompute::getCoin(DeviceData<T> &r) {
 	func_profiler.pause();
 	test_profiler.pause();
 
-	T rr[r.size()];
+	T* rr = new T[r.size()];
 	// align AES step.
 	aes_objects[1-partyNum]->getRandom(rr, r.size());
 	aes_objects[partyNum]->getRandom(rr, r.size());
 	thrust::copy(rr, rr + r.size(), r.begin());
 	r &= 1;
+
+	delete [] rr;
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -90,7 +98,9 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 		z.fill(1);
 	} 
 	else {
-		T rx[x.size()], ry[y.size()], rz[z.size()];
+		T* rx = new T[x.size()];
+		T* ry = new T[y.size()];
+		T* rz = new T[z.size()];
 		aes_objects[partyNum]->getRandom(rx, x.size());
 		aes_objects[partyNum]->getRandom(ry, y.size());
 		aes_objects[partyNum]->getRandom(rz, z.size());
@@ -169,6 +179,10 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 			// std::cout << std::endl;
 
 		}
+
+		delete [] rx;
+		delete [] ry;
+		delete [] rz;
 	}
 
 	comm_profiler.start();
@@ -586,7 +600,8 @@ void Precompute::getCorrelatedRandomness(
 	func_profiler.pause();
 	test_profiler.pause();
 
-	T myr[w.size()], otherr[w.size()];	
+	T* myr = new T[w.size()];
+	T* otherr = new T[w.size()];	
 	aes_objects[partyNum]->getRandom(myr, w.size());
 	aes_objects[1-partyNum]->getRandom(otherr, w.size());
 	thrust::copy(otherr, otherr + w.size(), out1.getShare(0)->begin());
@@ -608,6 +623,9 @@ void Precompute::getCorrelatedRandomness(
 		out1.getShare(0)->receive(0);
 		out1.getShare(0)->join();
 	}
+
+	delete [] myr;
+	delete [] otherr;
 
 	comm_profiler.start();
 	func_profiler.start();
