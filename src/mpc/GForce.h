@@ -26,12 +26,12 @@ static uint64_t p = 65537;
  *     protocol. 
 */
 // // unit test only.
-// // 31 bits prime, l = 27, fxp_len = 11.
-// static uint64_t l = 27;
-// static uint64_t q = 2013265921;
-// 28 bits prime, l = 25, fxp_len = 8.
-static uint64_t l = 25;
-static uint64_t q = 167772161;
+// 31 bits prime, l = 27, fxp_len = 11.
+static uint64_t l = 27;
+static uint64_t q = 2013265921;
+// // 28 bits prime, l = 25, fxp_len = 8.
+// static uint64_t l = 25;
+// static uint64_t q = 167772161;
 
 template <typename T, typename I>
 class GFOBase {
