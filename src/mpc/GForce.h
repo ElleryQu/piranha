@@ -12,7 +12,8 @@
 #include "../gpu/DeviceData.h"
 #include "../globals.h"
 
-static uint64_t p = 251;
+// static uint64_t p = 251;
+static uint64_t p = 65537;
 /**
  * It is difficult to choose a appropriate prime p in Piranha:
  * as we know, a fxp is embedded in a field element, and the field

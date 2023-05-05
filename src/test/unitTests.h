@@ -1,6 +1,8 @@
 
 #pragma once
 
+#define EXP_TIMES 1
+
 #include <gtest/gtest.h>
 
 #include <iostream>

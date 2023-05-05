@@ -117,9 +117,39 @@ TYPED_TEST(RogueTest, Mult2) {
     }
     a *= b;
     dividePublic(a, (T)(1 << FLOAT_PRECISION));
+    // a >>= FLOAT_PRECISION;
     reconstruct(a, result);
 
     std::vector<double> expected = {12, 0, 33, 15, 2, -33};
+    printDeviceData(result, "result", true);
+    assertDeviceData(result, expected);
+}
+
+TYPED_TEST(RogueTest, Mult3) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
+
+    if (partyNum >= Share::numParties) return;
+    
+    Share a ({12, 24, 3, 5, -2, -3}); 
+    Share b ({1, 0, 11, 3, -1, 11});
+    Share c ({1, 1, 0.5, -0.5, 2, 0.01});
+
+    DeviceData<T> result(a.size());
+
+    if (use_offline){
+        b.offline_known = true;
+        c.offline_known = true;
+    }
+    a *= b;
+    dividePublic(a, (T)(1 << FLOAT_PRECISION));
+    a *= c;
+    dividePublic(a, (T)(1 << FLOAT_PRECISION));
+    // a >>= FLOAT_PRECISION;
+    reconstruct(a, result);
+
+    std::vector<double> expected = {12, 0, 16.5, -7.5, 4, -0.33};
     printDeviceData(result, "result", true);
     assertDeviceData(result, expected);
 }
@@ -131,6 +161,7 @@ TYPED_TEST(RogueTest, MatMul) {
 
     if (partyNum >= Share::numParties) return;
 
+    // column major
     Share a = {1, 1, 1, 1, 1, 1};  // 2 x 3
     Share b = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0}; // 3 x 4
     Share c(8); // 2 x 4
@@ -174,6 +205,42 @@ TYPED_TEST(RogueTest, MatMul2) {
     // printDeviceData(result, "result");
     // std::vector<double> expected = {-2.786461, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
     std::vector<double> expected = {-2, -1.280988, -2.209210, 0.049379, 0.241369, 1.617007, -0.572261, 0.705014, -1.176370, -0.814461, 0.992866, 0.856274};
+    assertDeviceData(result, expected);
+}
+
+TYPED_TEST(RogueTest, MatMul3) {
+
+    using Share = typename TestFixture::ParamType;
+    using T = typename Share::share_type;
+
+    if (partyNum >= Share::numParties) return;
+
+    Share a = {
+        0.12,   -0.12, 
+        0.34,   0.34, 
+        0,      0.56,
+        0.78,   0
+
+    };  // 2 x 4, 1st row: 0.12, 0.34, 0, 0.78
+    Share b = {0, 1, 1, 0, 0, 1, 0, 1}; // 4 x 2
+    // expected {0.34, 0.9, 1.12, 0.34}
+    Share temp(4); // 2 x 2
+    Share c = {1, 1, 0, 1}; // 2 x 2
+    Share d(4); // 2 x 2
+
+    DeviceData<T> result(4);
+
+    if (use_offline){
+        b.offline_known = true;
+        c.offline_known = true;
+    }
+    matmul(a, b, temp, 2, 2, 4, false, false, false, (T)FLOAT_PRECISION);
+    matmul(temp, c, d, 2, 2, 2, false, false, false, (T)FLOAT_PRECISION);
+    reconstruct(d, result);
+
+    printDeviceData(result, "result");
+    std::vector<double> expected = {1.46, 1.24, 1.12, 0.34};
+
     assertDeviceData(result, expected);
 }
 

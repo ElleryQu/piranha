@@ -700,6 +700,8 @@ void localFprop(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
                 stride, dilation);
             C += Sz;
         }
+
+        cudaThreadSynchronize();
     }
 }
 
@@ -776,6 +778,8 @@ void localDgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
                 filterHeight, filterWidth, Din,
                 paddingHeight, paddingWidth, stride, dilation,
                 imageHeight, imageWidth);
+
+            cudaThreadSynchronize();    
 
             *C.getShare(0) += Sz;
             *C.getShare(0) -= Rs;
@@ -856,6 +860,8 @@ void localWgrad(const ROG<T> &A, const ROG<T> &B, ROG<T> &C,
                 imageHeight, imageWidth, Din,
                 filterHeight, filterWidth,
                 paddingHeight, paddingWidth, stride, dilation);
+            
+            cudaThreadSynchronize();    
 
             *C.getShare(0) += Sz;
             *C.getShare(0) -= Rs;

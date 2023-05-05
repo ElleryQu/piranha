@@ -1,509 +1,509 @@
 
-// #include "unitTests.h"
+#include "unitTests.h"
 
-// #include "../util/model.h"
-// #include "../util/functors.h"
+#include "../util/model.h"
+#include "../util/functors.h"
 
-// #ifndef LAYER_TEST_SHARE
-// #define LAYER_TEST_SHARE ROG
-// #endif
+#ifndef LAYER_TEST_SHARE
+#define LAYER_TEST_SHARE ROG
+#endif
 
-// template<typename T>
-// struct LayerTest : public testing::Test {
-//     using ParamType = T;
-// };
+template<typename T>
+struct LayerTest : public testing::Test {
+    using ParamType = T;
+};
 
-// TYPED_TEST_CASE(LayerTest, uint64_t);
+TYPED_TEST_CASE(LayerTest, uint64_t);
 
-// TYPED_TEST(LayerTest, FCForwardBasic) {
+TYPED_TEST(LayerTest, FCForwardBasic) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     int inputDim = 4;
-//     int batchSize = 4;
-//     int outputDim = 3;
+    int inputDim = 4;
+    int batchSize = 4;
+    int outputDim = 3;
 
-//     LAYER_TEST_SHARE<T> input {
-//         1, 0, 0, 0,
-//         0, 1, 0, 0,
-//         0, 0, 1, 0,
-//         0, 0, 0, 1,
-//     };
+    LAYER_TEST_SHARE<T> input {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    };
 
-//     FCConfig lconfig(inputDim, batchSize, outputDim);
-//     FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    FCConfig lconfig(inputDim, batchSize, outputDim);
+    FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     layer.forward(input);
+    layer.forward(input);
 
-//     LAYER_TEST_SHARE<T> temp(batchSize * outputDim);
-//     temp += *layer.getWeights();
+    LAYER_TEST_SHARE<T> temp(batchSize * outputDim);
+    temp += *layer.getWeights();
 
-//     uint64_t bias = (uint64_t) (0.01 * (1 << FLOAT_PRECISION));
-//     temp += bias;
+    uint64_t bias = (uint64_t) (0.01 * (1 << FLOAT_PRECISION));
+    temp += bias;
 
-//     std::vector<double> expected(batchSize * outputDim);
-//     copyToHost(temp, expected);
+    std::vector<double> expected(batchSize * outputDim);
+    copyToHost(temp, expected);
 
-//     assertShare(*layer.getActivation(), expected, true);
-// }
+    assertShare(*layer.getActivation(), expected, true);
+}
 
-// TYPED_TEST(LayerTest, FCForwardMNIST) {
+TYPED_TEST(LayerTest, FCForwardMNIST) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     int inputDim = 16;
-//     int batchSize = 128;
-//     int outputDim = 10;
+    int inputDim = 16;
+    int batchSize = 128;
+    int outputDim = 10;
 
-//     FCConfig lconfig(inputDim, batchSize, outputDim);
-//     FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    FCConfig lconfig(inputDim, batchSize, outputDim);
+    FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     // load weights and biases
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_weight", *layer.getWeights());
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_bias", *layer.getBiases());
+    // load weights and biases
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_weight", *layer.getWeights());
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_bias", *layer.getBiases());
 
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * inputDim);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_input", input);
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * inputDim);
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_input", input);
 
-//     layer.forward(input);
+    layer.forward(input);
 
-//     // load expected output and compare with calculated activations
-//     LAYER_TEST_SHARE<T> expected(batchSize * outputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_output", expected);
+    // load expected output and compare with calculated activations
+    LAYER_TEST_SHARE<T> expected(batchSize * outputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_output", expected);
 
-//     //printShareTensor(*layer.getActivation(), "activations", 128, 1, 1, 10);
+    //printShareTensor(*layer.getActivation(), "activations", 128, 1, 1, 10);
 
-//     std::vector<double> host_expected(expected.size());
-//     copyToHost(expected, host_expected);
-//     assertShare(*layer.getActivation(), host_expected);
-// }
+    std::vector<double> host_expected(expected.size());
+    copyToHost(expected, host_expected);
+    assertShare(*layer.getActivation(), host_expected);
+}
 
-// TYPED_TEST(LayerTest, FCForwardSecureML) {
+TYPED_TEST(LayerTest, FCForwardSecureML) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     int inputDim = 784;
-//     int batchSize = 128;
-//     int outputDim = 128;
+    int inputDim = 784;
+    int batchSize = 128;
+    int outputDim = 128;
 
-//     FCConfig lconfig(inputDim, batchSize, outputDim);
-//     FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    FCConfig lconfig(inputDim, batchSize, outputDim);
+    FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     // load weights and biases
-//     loadShareFromFile(std::string(TEST_PATH) + "secureml/weight0", *layer.getWeights());
-//     loadShareFromFile(std::string(TEST_PATH) + "secureml/bias0", *layer.getBiases());
+    // load weights and biases
+    loadShareFromFile(std::string(TEST_PATH) + "secureml/weight0", *layer.getWeights());
+    loadShareFromFile(std::string(TEST_PATH) + "secureml/bias0", *layer.getBiases());
 
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * inputDim);
-//     loadShareFromFile(std::string(TEST_PATH) + "secureml/input", input);
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * inputDim);
+    loadShareFromFile(std::string(TEST_PATH) + "secureml/input", input);
 
-//     layer.forward(input);
+    layer.forward(input);
 
-//     // load expected output and compare with calculated activations
-//     LAYER_TEST_SHARE<T> expected(batchSize * outputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "secureml/outputlayer0", expected);
+    // load expected output and compare with calculated activations
+    LAYER_TEST_SHARE<T> expected(batchSize * outputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "secureml/outputlayer0", expected);
 
-//     std::vector<double> host_expected(expected.size());
-//     copyToHost(expected, host_expected);
-//     assertShare(*layer.getActivation(), host_expected);
-// }
+    std::vector<double> host_expected(expected.size());
+    copyToHost(expected, host_expected);
+    assertShare(*layer.getActivation(), host_expected);
+}
 
-// TYPED_TEST(LayerTest, FCBackwardMNIST) {
+TYPED_TEST(LayerTest, FCBackwardMNIST) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     log_learning_rate = 6;
+    log_learning_rate = 6;
 
-//     int inputDim = 16;
-//     int batchSize = 128;
-//     int outputDim = 10;
+    int inputDim = 16;
+    int batchSize = 128;
+    int outputDim = 10;
 
-//     FCConfig lconfig(inputDim, batchSize, outputDim);
-//     FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    FCConfig lconfig(inputDim, batchSize, outputDim);
+    FCLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     // load weights and biases
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_weight", *layer.getWeights());
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_bias", *layer.getBiases());
+    // load weights and biases
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_weight", *layer.getWeights());
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_bias", *layer.getBiases());
 
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * inputDim);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_input", input);
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * inputDim);
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_input", input);
 
-//     // load gradient in
-//     LAYER_TEST_SHARE<T> gradin(batchSize * outputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_gradin", gradin);
+    // load gradient in
+    LAYER_TEST_SHARE<T> gradin(batchSize * outputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_gradin", gradin);
 
-//     //printShare(*layer.getWeights(), "weights?");
+    //printShare(*layer.getWeights(), "weights?");
 
-//     layer.backward(gradin, input);
+    layer.backward(gradin, input);
 
-//     // check matching gradout
-//     LAYER_TEST_SHARE<T> gradout(batchSize * inputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_gradout", gradout);
+    // check matching gradout
+    LAYER_TEST_SHARE<T> gradout(batchSize * inputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_gradout", gradout);
 
-//     std::vector<double> expected_gradout(gradout.size());
-//     copyToHost(gradout, expected_gradout);
-//     //printf("asserting gradout\n");
-//     assertShare(*layer.getDelta(), expected_gradout);
+    std::vector<double> expected_gradout(gradout.size());
+    copyToHost(gradout, expected_gradout);
+    //printf("asserting gradout\n");
+    assertShare(*layer.getDelta(), expected_gradout);
 
-//     // check weight update
-//     LAYER_TEST_SHARE<T> new_weights(inputDim * outputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_newweight", new_weights);
+    // check weight update
+    LAYER_TEST_SHARE<T> new_weights(inputDim * outputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_newweight", new_weights);
 
-//     std::vector<double> expected_new_weights(new_weights.size());
-//     copyToHost(new_weights, expected_new_weights);
-//     //printf("asserting new weights\n");
-//     //printShare(*layer.getWeights(), "actual weights");
-//     //printShare(new_weights, "expected weights");
-//     assertShare(*layer.getWeights(), expected_new_weights);
+    std::vector<double> expected_new_weights(new_weights.size());
+    copyToHost(new_weights, expected_new_weights);
+    //printf("asserting new weights\n");
+    //printShare(*layer.getWeights(), "actual weights");
+    //printShare(new_weights, "expected weights");
+    assertShare(*layer.getWeights(), expected_new_weights);
 
-//     // check bias update
-//     LAYER_TEST_SHARE<T> new_biases(outputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_newbias", new_biases);
+    // check bias update
+    LAYER_TEST_SHARE<T> new_biases(outputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_newbias", new_biases);
 
-//     LAYER_TEST_SHARE<T> grad_biases(outputDim);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_gradbias", grad_biases);
+    LAYER_TEST_SHARE<T> grad_biases(outputDim);
+    loadShareFromFile(std::string(TEST_PATH) + "test_fclayer_gradbias", grad_biases);
 
-//     std::vector<double> expected_new_biases(new_biases.size());
-//     copyToHost(new_biases, expected_new_biases);
-//     //printf("asserting new biases\n");
-//     assertShare(*layer.getBiases(), expected_new_biases);
-// }
+    std::vector<double> expected_new_biases(new_biases.size());
+    copyToHost(new_biases, expected_new_biases);
+    //printf("asserting new biases\n");
+    assertShare(*layer.getBiases(), expected_new_biases);
+}
 
-// TYPED_TEST(LayerTest, ReLUForwardBasic) {
+TYPED_TEST(LayerTest, ReLUForwardBasic) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // For GFO, integer part out of range.
-//     // LAYER_TEST_SHARE<T> input = {
-//     //     -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2, 1 << 12, -17, (1 << 18) - 1
-//     // };
-//     LAYER_TEST_SHARE<T> input = {
-//         -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2,  -17
-//     };
+    // For GFO, integer part out of range.
+    // LAYER_TEST_SHARE<T> input = {
+    //     -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2, 1 << 12, -17, (1 << 18) - 1
+    // };
+    LAYER_TEST_SHARE<T> input = {
+        -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2,  -17
+    };
 
-//     ReLUConfig lconfig(
-//         input.size(),
-//         1 // "batch" size 
-//     );
-//     ReLULayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-//     layer.forward(input);
+    ReLUConfig lconfig(
+        input.size(),
+        1 // "batch" size 
+    );
+    ReLULayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    layer.forward(input);
 
-//     // std::vector<double> expected = {
-//     //     0, 0, 4, 3, 3.5, 1, 0, 0, 2, 1 << 12, 0, (1 << 18) - 1
-//     // };
-//     std::vector<double> expected = {
-//         0, 0, 4, 3, 3.5, 1, 0, 0, 2, 0
-//     };
-//     assertShare(*layer.getActivation(), expected);
-// }
-
-// TYPED_TEST(LayerTest, ReLUForwardMNIST) {
-
-//     using T = typename TestFixture::ParamType;
-
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
-
-//     int inputDim = 128;
-//     int batchSize = 128;
+    // std::vector<double> expected = {
+    //     0, 0, 4, 3, 3.5, 1, 0, 0, 2, 1 << 12, 0, (1 << 18) - 1
+    // };
+    std::vector<double> expected = {
+        0, 0, 4, 3, 3.5, 1, 0, 0, 2, 0
+    };
+    assertShare(*layer.getActivation(), expected);
+}
+
+TYPED_TEST(LayerTest, ReLUForwardMNIST) {
+
+    using T = typename TestFixture::ParamType;
+
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+
+    int inputDim = 128;
+    int batchSize = 128;
 
-//     ReLUConfig lconfig(inputDim, batchSize);
-//     ReLULayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * inputDim);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_relulayer_input", input);
-
-//     //comm_profiler.clear();
-//     //func_profiler.clear();
-//     //comm_profiler.start();
-//     //func_profiler.start();
-//     layer.forward(input);
-//     //func_profiler.dump_comm_rounds();
-//     //comm_profiler.dump_comm_bytes();
-
-//     // load expected output and compare with calculated activations
-//     LAYER_TEST_SHARE<T> expected(batchSize * inputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_relulayer_output", expected);
+    ReLUConfig lconfig(inputDim, batchSize);
+    ReLULayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * inputDim);
+    loadShareFromFile(std::string(TEST_PATH) + "test_relulayer_input", input);
+
+    //comm_profiler.clear();
+    //func_profiler.clear();
+    //comm_profiler.start();
+    //func_profiler.start();
+    layer.forward(input);
+    //func_profiler.dump_comm_rounds();
+    //comm_profiler.dump_comm_bytes();
+
+    // load expected output and compare with calculated activations
+    LAYER_TEST_SHARE<T> expected(batchSize * inputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_relulayer_output", expected);
 
-//     std::vector<double> host_expected(expected.size());
-//     copyToHost(expected, host_expected);
-//     assertShare(*layer.getActivation(), host_expected);
-// }
+    std::vector<double> host_expected(expected.size());
+    copyToHost(expected, host_expected);
+    assertShare(*layer.getActivation(), host_expected);
+}
 
-// TYPED_TEST(LayerTest, ReLUBackwardBasic) {
+TYPED_TEST(LayerTest, ReLUBackwardBasic) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // For GFO, integer part out of range.
-//     // LAYER_TEST_SHARE<T> input = {
-//     //     -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2, 1 << 12, -17, (1 << 18) - 1
-//     // };
-//     LAYER_TEST_SHARE<T> input = {
-//         -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2,  -17
-//     };
+    // For GFO, integer part out of range.
+    // LAYER_TEST_SHARE<T> input = {
+    //     -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2, 1 << 12, -17, (1 << 18) - 1
+    // };
+    LAYER_TEST_SHARE<T> input = {
+        -2, -3, 4, 3, 3.5, 1, -1.5, -1, 2,  -17
+    };
 
-//     ReLUConfig lconfig(
-//         input.size(),
-//         1 // "batch" size 
-//     );
-//     ReLULayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-//     layer.forward(input);
+    ReLUConfig lconfig(
+        input.size(),
+        1 // "batch" size 
+    );
+    ReLULayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    layer.forward(input);
 
-//     LAYER_TEST_SHARE<T> delta = {
-//         -7.30e-1,   -6.90e-2,   -1.60e+0,   -1.50e-1, 
-//         -7.20e-1,   1.60e+0,    1.50e-1,    1.90e+0, 
-//         -3.00e-1,   4.10e-1
-//     };
+    LAYER_TEST_SHARE<T> delta = {
+        -7.30e-1,   -6.90e-2,   -1.60e+0,   -1.50e-1, 
+        -7.20e-1,   1.60e+0,    1.50e-1,    1.90e+0, 
+        -3.00e-1,   4.10e-1
+    };
 
-//     layer.backward(delta, input);
+    layer.backward(delta, input);
 
-//     std::vector<double> expected = {
-//         0, 0, -1.60e+0, -1.50e-1, 
-//         -7.20e-1, 1.60e+0, 0, 0, 
-//         -3.00e-1,  0
-//     };
-//     assertShare(*layer.getDelta(), expected);
-// }
+    std::vector<double> expected = {
+        0, 0, -1.60e+0, -1.50e-1, 
+        -7.20e-1, 1.60e+0, 0, 0, 
+        -3.00e-1,  0
+    };
+    assertShare(*layer.getDelta(), expected);
+}
 
-// TYPED_TEST(LayerTest, MaxpoolForwardBasic) {
+TYPED_TEST(LayerTest, MaxpoolForwardBasic) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // imageWidth x imageHeight = 2 x 2
-//     // features = 2
-//     // batchSize = 2
-//     // NHWC
-//     LAYER_TEST_SHARE<T> inputImage = {
-//         1, -1, -3, 2, 3, -2, 0, 1,
-//         2, -1, 0, 0, -2, -3, -1, 3
-//     };
+    // imageWidth x imageHeight = 2 x 2
+    // features = 2
+    // batchSize = 2
+    // NHWC
+    LAYER_TEST_SHARE<T> inputImage = {
+        1, -1, -3, 2, 3, -2, 0, 1,
+        2, -1, 0, 0, -2, -3, -1, 3
+    };
 
-//     MaxpoolConfig lconfig(
-//         2, 2, // imageHeight x imageWidth
-//         2, // features
-//         2, // poolSize
-//         1, // stride
-//         2 // batchSize
-//     );
-//     MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-//     layer.forward(inputImage);
+    MaxpoolConfig lconfig(
+        2, 2, // imageHeight x imageWidth
+        2, // features
+        2, // poolSize
+        1, // stride
+        2 // batchSize
+    );
+    MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    layer.forward(inputImage);
 
-//     std::vector<double> expected = {
-//         3, 2,
-//         2, 3
-//     };
-//     assertShare(*layer.getActivation(), expected);
-// }
+    std::vector<double> expected = {
+        3, 2,
+        2, 3
+    };
+    assertShare(*layer.getActivation(), expected);
+}
 
-// TYPED_TEST(LayerTest, MaxpoolForwardMNIST) {
+TYPED_TEST(LayerTest, MaxpoolForwardMNIST) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     int imageWidth = 9;
-//     int imageHeight = 9;
-//     int features = 2;
-//     int poolSize = 3;
-//     int stride = 2;
-//     int batchSize = 128;
+    int imageWidth = 9;
+    int imageHeight = 9;
+    int features = 2;
+    int poolSize = 3;
+    int stride = 2;
+    int batchSize = 128;
 
-//     MaxpoolConfig lconfig(imageWidth, imageHeight, features, poolSize, stride, batchSize);
-//     MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    MaxpoolConfig lconfig(imageWidth, imageHeight, features, poolSize, stride, batchSize);
+    MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
 
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * features * imageWidth * imageHeight);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_input", input);
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * features * imageWidth * imageHeight);
+    loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_input", input);
 
-//     //printShareTensor(input, "maxpool input", 1, 2, 9, 9);
+    //printShareTensor(input, "maxpool input", 1, 2, 9, 9);
 
-//     layer.forward(input);
+    layer.forward(input);
 
-//     int outputWidth = ((imageWidth - poolSize)/stride) + 1;
-//     int outputHeight = ((imageHeight - poolSize)/stride) + 1;
+    int outputWidth = ((imageWidth - poolSize)/stride) + 1;
+    int outputHeight = ((imageHeight - poolSize)/stride) + 1;
 
-//     // load expected output and compare with calculated activations
-//     LAYER_TEST_SHARE<T> expected(batchSize * features * outputWidth * outputHeight);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_output", expected);
+    // load expected output and compare with calculated activations
+    LAYER_TEST_SHARE<T> expected(batchSize * features * outputWidth * outputHeight);
+    loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_output", expected);
 
-//     //printShareTensor(expected, "expected", 1, 2, 4, 4);
+    //printShareTensor(expected, "expected", 1, 2, 4, 4);
 
-//     std::vector<double> host_expected(expected.size());
-//     copyToHost(expected, host_expected);
+    std::vector<double> host_expected(expected.size());
+    copyToHost(expected, host_expected);
 
-//     //printShareTensor(*layer.getActivation(), "activation", 1, 2, 4, 4);
-//     assertShare(*layer.getActivation(), host_expected);
+    //printShareTensor(*layer.getActivation(), "activation", 1, 2, 4, 4);
+    assertShare(*layer.getActivation(), host_expected);
 
-//     //printShareTensor(layer.maxPrime, "maxprime", 1, 2, 9, 9, false);
-// }
+    //printShareTensor(layer.maxPrime, "maxprime", 1, 2, 9, 9, false);
+}
 
-// TYPED_TEST(LayerTest, MaxpoolBackwardBasic) {
+TYPED_TEST(LayerTest, MaxpoolBackwardBasic) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // imageWidth x imageHeight = 2 x 2
-//     // features = 2
-//     // batchSize = 2
-//     // NHWC
-//     LAYER_TEST_SHARE<T> inputImage = {
-//         1, -1, -3, 2, 3, -2, 0, 1,
-//         2, -1, 0, 0, -2, -3, -1, 3 
-//     };
+    // imageWidth x imageHeight = 2 x 2
+    // features = 2
+    // batchSize = 2
+    // NHWC
+    LAYER_TEST_SHARE<T> inputImage = {
+        1, -1, -3, 2, 3, -2, 0, 1,
+        2, -1, 0, 0, -2, -3, -1, 3 
+    };
 
-//     MaxpoolConfig lconfig(
-//         2, 2, // imageWidth x imageHeight
-//         2, // features
-//         2, // poolSize
-//         1, // stride
-//         2 // batchSize
-//     );
-//     MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-//     layer.forward(inputImage);
+    MaxpoolConfig lconfig(
+        2, 2, // imageWidth x imageHeight
+        2, // features
+        2, // poolSize
+        1, // stride
+        2 // batchSize
+    );
+    MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    layer.forward(inputImage);
 
-//     LAYER_TEST_SHARE<T> gradin = {
-//         1, 2, -1, -2
-//     };
-//     layer.backward(gradin, inputImage);
-
-//     // NHWC
-//     std::vector<double>expected = {
-//         0, 0, 0, 2, 1, 0, 0, 0,
-//         -1, 0, 0, 0, 0, 0, 0, -2
-//     };
-//     assertShare(*layer.getDelta(), expected);
-// }
-
-// TYPED_TEST(LayerTest, MaxpoolBackwardMNIST) {
-
-//     using T = typename TestFixture::ParamType;
-
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
-
-//     int imageWidth = 9;
-//     int imageHeight = 9;
-//     int features = 2;
-//     int poolSize = 3;
-//     int stride = 2;
-//     int batchSize = 128;
-
-//     MaxpoolConfig lconfig(imageWidth, imageHeight, features, poolSize, stride, batchSize);
-//     MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * features * imageWidth * imageHeight);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_input", input);
-
-//     layer.forward(input);
-
-//     int outputWidth = ((imageWidth - poolSize)/stride) + 1;
-//     int outputHeight = ((imageHeight - poolSize)/stride) + 1;
-
-//     // load gradient in
-//     LAYER_TEST_SHARE<T> gradin(batchSize * features * outputWidth * outputHeight); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_gradin", gradin);
-
-//     layer.backward(gradin, input);
-
-//     // check matching gradout
-//     LAYER_TEST_SHARE<T> gradout(batchSize * features * imageWidth * imageHeight);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_gradout", gradout);
-
-//     std::vector<double> expected_gradout(gradout.size());
-//     copyToHost(gradout, expected_gradout);
-//     assertShare(*layer.getDelta(), expected_gradout);
-// }
-
-// TYPED_TEST(LayerTest, AveragepoolForwardBasic) {
-
-//     using T = typename TestFixture::ParamType;
-
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
-
-//     // imageWidth x imageHeight = 2 x 2
-//     // features = 2
-//     // batchSize = 2
-//     // NHWC
-//     LAYER_TEST_SHARE<T> inputImage = {
-//         1, -1, -3, 2, 3, -2, 0, 1,
-//         2, -1, 0, 0, -2, -3, -1, 3
-//     };
-
-//     AveragepoolConfig lconfig(
-//         2, 2, // imageWidth x imageHeight
-//         2, // features
-//         2, // poolSize
-//         1, // stride
-//         2 // batchSize
-//     );
-//     AveragepoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-//     layer.forward(inputImage);
-
-//     std::vector<double> expected = {
-//         0.25, 0, -0.25, -0.25
-//     };
-//     assertShare(*layer.getActivation(), expected);
-// }
-
-// TYPED_TEST(LayerTest, AveragepoolBackwardBasic) {
-
-//     using T = typename TestFixture::ParamType;
-
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
-
-//     // imageWidth x imageHeight = 2 x 2
-//     // features = 2
-//     // batchSize = 2
-//     // NHWC
-//     LAYER_TEST_SHARE<T> inputImage = {
-//         1, -1, -3, 2, 3, -2, 0, 1,
-//         2, -1, 0, 0, -2, -3, -1, 3
-//     };
-
-//     AveragepoolConfig lconfig(
-//         2, 2, // imageWidth x imageHeight
-//         2, // features
-//         2, // poolSize
-//         1, // stride
-//         2 // batchSize
-//     );
-//     AveragepoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
-//     layer.forward(inputImage);
-
-//     LAYER_TEST_SHARE<T> gradin = {
-//         1, 0, -1, -2
-//     };
-//     layer.backward(gradin, inputImage);
-
-//     std::vector<double> expected = {
-//         0.25, 0.0,
-//         0.25, 0.0,
-//         0.25, 0.0,
-//         0.25, 0.0,
-//         -0.25, -0.50,
-//         -0.25, -0.50,
-//         -0.25, -0.50,
-//         -0.25, -0.50
-//     };
-//     assertShare(*layer.getDelta(), expected);
-// }
+    LAYER_TEST_SHARE<T> gradin = {
+        1, 2, -1, -2
+    };
+    layer.backward(gradin, inputImage);
+
+    // NHWC
+    std::vector<double>expected = {
+        0, 0, 0, 2, 1, 0, 0, 0,
+        -1, 0, 0, 0, 0, 0, 0, -2
+    };
+    assertShare(*layer.getDelta(), expected);
+}
+
+TYPED_TEST(LayerTest, MaxpoolBackwardMNIST) {
+
+    using T = typename TestFixture::ParamType;
+
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+
+    int imageWidth = 9;
+    int imageHeight = 9;
+    int features = 2;
+    int poolSize = 3;
+    int stride = 2;
+    int batchSize = 128;
+
+    MaxpoolConfig lconfig(imageWidth, imageHeight, features, poolSize, stride, batchSize);
+    MaxpoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * features * imageWidth * imageHeight);
+    loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_input", input);
+
+    layer.forward(input);
+
+    int outputWidth = ((imageWidth - poolSize)/stride) + 1;
+    int outputHeight = ((imageHeight - poolSize)/stride) + 1;
+
+    // load gradient in
+    LAYER_TEST_SHARE<T> gradin(batchSize * features * outputWidth * outputHeight); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_gradin", gradin);
+
+    layer.backward(gradin, input);
+
+    // check matching gradout
+    LAYER_TEST_SHARE<T> gradout(batchSize * features * imageWidth * imageHeight);
+    loadShareFromFile(std::string(TEST_PATH) + "test_maxpoollayer_gradout", gradout);
+
+    std::vector<double> expected_gradout(gradout.size());
+    copyToHost(gradout, expected_gradout);
+    assertShare(*layer.getDelta(), expected_gradout);
+}
+
+TYPED_TEST(LayerTest, AveragepoolForwardBasic) {
+
+    using T = typename TestFixture::ParamType;
+
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+
+    // imageWidth x imageHeight = 2 x 2
+    // features = 2
+    // batchSize = 2
+    // NHWC
+    LAYER_TEST_SHARE<T> inputImage = {
+        1, -1, -3, 2, 3, -2, 0, 1,
+        2, -1, 0, 0, -2, -3, -1, 3
+    };
+
+    AveragepoolConfig lconfig(
+        2, 2, // imageWidth x imageHeight
+        2, // features
+        2, // poolSize
+        1, // stride
+        2 // batchSize
+    );
+    AveragepoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    layer.forward(inputImage);
+
+    std::vector<double> expected = {
+        0.25, 0, -0.25, -0.25
+    };
+    assertShare(*layer.getActivation(), expected);
+}
+
+TYPED_TEST(LayerTest, AveragepoolBackwardBasic) {
+
+    using T = typename TestFixture::ParamType;
+
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+
+    // imageWidth x imageHeight = 2 x 2
+    // features = 2
+    // batchSize = 2
+    // NHWC
+    LAYER_TEST_SHARE<T> inputImage = {
+        1, -1, -3, 2, 3, -2, 0, 1,
+        2, -1, 0, 0, -2, -3, -1, 3
+    };
+
+    AveragepoolConfig lconfig(
+        2, 2, // imageWidth x imageHeight
+        2, // features
+        2, // poolSize
+        1, // stride
+        2 // batchSize
+    );
+    AveragepoolLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef);
+    layer.forward(inputImage);
+
+    LAYER_TEST_SHARE<T> gradin = {
+        1, 0, -1, -2
+    };
+    layer.backward(gradin, inputImage);
+
+    std::vector<double> expected = {
+        0.25, 0.0,
+        0.25, 0.0,
+        0.25, 0.0,
+        0.25, 0.0,
+        -0.25, -0.50,
+        -0.25, -0.50,
+        -0.25, -0.50,
+        -0.25, -0.50
+    };
+    assertShare(*layer.getDelta(), expected);
+}
 
 // TYPED_TEST(LayerTest, CNNForwardBasic) {
 

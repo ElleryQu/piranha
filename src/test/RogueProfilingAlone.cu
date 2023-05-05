@@ -74,6 +74,7 @@ TEST(RogueTest, ReLU_benchmark_TPC) {
             comm_profiler.get_comm_rx_bytes() / 1024. / 1024. / EXP_TIMES,
             comm_profiler.get_elapsed_all() / 1000.0 / EXP_TIMES
         );
+        mlpf << std::endl;
 
         func_profiler.clear();
         comm_profiler.clear();
@@ -117,7 +118,7 @@ TEST(RogueTest, ReLU_benchmark_GFO) {
 
             test_profiler.start();
 
-            ReLU<uint64_t, uint8_t, BufferIterator<uint64_t>, BufferIterator<uint64_t>, BufferIterator<uint64_t>>(a, c, dc);
+            ReLU<uint64_t, uint32_t, BufferIterator<uint64_t>, BufferIterator<uint64_t>, BufferIterator<uint64_t>>(a, c, dc);
 
             test_profiler.accumulate("relu_bm");
 
@@ -141,6 +142,7 @@ TEST(RogueTest, ReLU_benchmark_GFO) {
             comm_profiler.get_comm_rx_bytes() / 1024. / 1024. / EXP_TIMES,
             comm_profiler.get_elapsed_all() / 1000.0 / EXP_TIMES
         );
+        mlpf << std::endl;
 
         func_profiler.clear();
         comm_profiler.clear();
@@ -180,7 +182,7 @@ TEST(RogueTest, ReLU_benchmark_ROG) {
             // a.offline_known=false;
 
             ROG<uint64_t> c(n);
-            ROG<uint8_t> dc(n);
+            ROG<uint32_t> dc(n);
 
             test_profiler.start();
 
@@ -208,6 +210,7 @@ TEST(RogueTest, ReLU_benchmark_ROG) {
             comm_profiler.get_comm_rx_bytes() / 1024. / 1024. / EXP_TIMES,
             comm_profiler.get_elapsed_all() / 1000.0 / EXP_TIMES
         );
+        mlpf << std::endl;
 
         func_profiler.clear();
         comm_profiler.clear();
@@ -245,7 +248,7 @@ TEST(RogueTest, ReLU_BENCHMARK_gm_GFO) {
 
             test_profiler.start();
 
-            ReLU<uint64_t, uint8_t, BufferIterator<uint64_t>, BufferIterator<uint64_t>, BufferIterator<uint64_t>>(a, c, dc);
+            ReLU<uint64_t, uint32_t, BufferIterator<uint64_t>, BufferIterator<uint64_t>, BufferIterator<uint64_t>>(a, c, dc);
 
             test_profiler.accumulate("relu_bm");
 
@@ -259,7 +262,7 @@ TEST(RogueTest, ReLU_BENCHMARK_gm_GFO) {
         }
         printf("relu_bm (N=%d) - %f sec.\n", Np[j], test_profiler.get_elapsed("relu_bm") / 1000.0 / EXP_TIMES);
         writeProfile(
-            pf, "ROG", "relu_bm", Np[j], std::to_string(1), 
+            pf, "GFO", "relu_bm", Np[j], std::to_string(1), 
             test_profiler.get_elapsed("relu_bm") / 1000.0 / EXP_TIMES,
             comm_profiler.get_rounds() / EXP_TIMES,
             comm_profiler.get_comm_tx_bytes() / 1024. / 1024. / EXP_TIMES,
@@ -298,7 +301,7 @@ TEST(RogueTest, ReLU_BENCHMARK_gm_ROG) {
             // a.offline_known=false;
 
             ROG<uint64_t> c(n);
-            ROG<uint8_t> dc(n);
+            ROG<uint32_t> dc(n);
 
             test_profiler.start();
 

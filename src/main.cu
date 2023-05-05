@@ -175,6 +175,8 @@ int main(int argc, char** argv) {
             std::string("files/") + nn_config.dataset + "/test_label" <<
             std::endl;
     }
+
+    test_profiler.clear();
     
     if (piranha_config["test_only"]) {
         test(&net, test_data_file, test_label_file);
@@ -296,6 +298,7 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
         for (int i = 0; i < numIterations; i++) {
 
             comm_profiler.clear();
+            test_profiler.clear();
 
             if (piranha_config["debug_print"]) {
                 printf("iteration,%d\n", i);
@@ -307,16 +310,14 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
             getBatch(train_data, data_it, batch_data);
             getBatch(train_labels, label_it, batch_labels);
 
-            Profiler toplevel_profiler;
-
-            toplevel_profiler.start();
+            test_profiler.start();
             net->forward(batch_data);
-            toplevel_profiler.accumulate("fw-pass");
+            test_profiler.accumulate("fw-pass");
 
             updateAccuracy(net, batch_labels, correct);
 
             if (piranha_config["eval_inference_stats"]) {
-                double fw_ms = toplevel_profiler.get_elapsed("fw-pass");
+                double fw_ms = test_profiler.get_elapsed("fw-pass");
                 
                 printf("inference iteration (ms),%f\n", fw_ms);
                 printf("inference TX comm (bytes),%d\n", comm_profiler.get_comm_tx_bytes());
@@ -331,16 +332,16 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
             total_comm_rx_mb += ((double)comm_profiler.get_comm_rx_bytes()) / 1024.0 / 1024.0;
 
             if (piranha_config["inference_only"]) {
-                total_time_s += toplevel_profiler.get_elapsed_all() / 1000.0;
+                total_time_s += test_profiler.get_elapsed_all() / 1000.0;
                 continue;
             }
 
-            toplevel_profiler.start();
+            test_profiler.start();
             net->backward(batch_labels);
-            toplevel_profiler.accumulate("bw-pass");
+            test_profiler.accumulate("bw-pass");
 
             if (piranha_config["eval_train_stats"]) {
-                double fw_bw_ms = toplevel_profiler.get_elapsed_all();
+                double fw_bw_ms = test_profiler.get_elapsed_all();
                 printf("training iteration (ms),%f\n", fw_bw_ms);
                 printf("training TX comm (MB),%f\n", comm_profiler.get_comm_tx_bytes() / 1024.0 / 1024.0);
                 printf("training RX comm (MB),%f\n", comm_profiler.get_comm_rx_bytes() / 1024.0 / 1024.0);
@@ -354,7 +355,7 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
                 printf("total fw-bw pass peak memory (MB), %f\n", memory_profiler.get_max_mem_mb());
             }
 
-            total_time_s += toplevel_profiler.get_elapsed_all() / 1000.0;
+            total_time_s += test_profiler.get_elapsed_all() / 1000.0;
             
             if (piranha_config["iteration_snapshots"]) {
                 std::string snapshot_path = "output/"+run_name+"-epoch-"+std::to_string(e)+"-iteration-"+std::to_string(i);

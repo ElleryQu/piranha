@@ -12,10 +12,10 @@
     "party_users": ["alice", "bob"],
 
     "_desc_run_unit_tests": "Run unit tests",
-    "run_unit_tests": true,
+    "run_unit_tests": false,
 
     "_desc_unit_test_only": "Only run unit tests, do not try to run any full Piranha applications",
-    "unit_test_only": true,
+    "unit_test_only": false,
 
     "_desc_debug_print": "Show debug output",
     "debug_print": false,
@@ -30,34 +30,34 @@
     "run_name": "test-run",
 
     "_desc_network": "Path to NN architecture to use for the run",
-    "network": "files/models/test-net.json",
+    "network": "files/models/secureml-norelu.json",
 
     "_desc_custom_epochs": "Enable custom number of epochs. Otherwise set by size of learning rate schedule",
     "custom_epochs": true,
 
     "_desc_custom_epoch_count": "Number of epochs to train for, if custom_epochs is set",
-    "custom_epoch_count": 5,
+    "custom_epoch_count": 1,
 
     "_desc_custom_iterations": "Enable custom number of iterations. Otherwise set by training dataset size.",
-    "custom_iterations": false,
+    "custom_iterations": true,
 
     "_desc_custom_iteration_count": "Number of iterators to train per epoch, if custom_iterations is set",
-    "custom_iteration_count": 0,
+    "custom_iteration_count": 100,
 
     "_desc_custom_batch_size": "Enable custom batch size. Otherwise set by architecture configuration.",
     "custom_batch_size": false,
 
     "_desc_custom_batch_size_count": "Desired custom batch size",
-    "custom_batch_size_count": 128,
+    "custom_batch_size_count": 16,
 
     "_desc_nn_seed": "Seed for NN initialization",
     "nn_seed": 3407,
 
     "_desc_preload": "Preload weights from a snapshot directory instead of training from scratch",
-    "preload": false,
+    "preload": true,
 
     "_desc_preload_path": "Directory path from which to preload network weights",
-    "preload_path": "output/smlnorelu-mnist-rogue",
+    "preload_path": "output/secureml-norelu",
 
     "_desc_lr_schedule": "Learning rate schedule, in negative powers of 2 (e.g. 3 -> learning rate of 2^-3). Assumes that the number of LR exponents matches the desired number of training epochs",
     "lr_schedule": [3, 3, 3, 4, 4, 5, 6, 7, 8, 9],
@@ -69,7 +69,7 @@
     "inference_only": false,
 
     "_desc_no_test": "Do not run testing after training epochs",
-    "no_test": false,
+    "no_test": true,
 
     "_desc_last_test": "Only run a test pass after the last training epoch",
     "last_test": false,

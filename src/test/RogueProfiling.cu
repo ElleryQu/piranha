@@ -10,7 +10,6 @@ extern Profiler test_profiler;
 
 #define TEST_USLEEP_TIME 0
 #define OFFLINE_KNOWN true
-#define EXP_TIMES 100
 
 template<typename T>
 struct RogueTest: public testing::Test {
