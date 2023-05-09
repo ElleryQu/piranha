@@ -12,7 +12,7 @@ extern Profiler debug_profiler;
 extern nlohmann::json piranha_config;
 
 template<typename T, template<typename, typename...> typename Share>
-Profiler ReLULayer<T, Share>::relu_profiler;
+Profiler ReLULayerBase<T, Share>::relu_profiler;
 
 template<typename T, template<typename, typename...> typename Share>
 ReLULayer<T, Share>::ReLULayer(ReLUConfig* conf, int _layerNum, int seed) : Layer<T, Share>(_layerNum),

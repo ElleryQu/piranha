@@ -27,10 +27,10 @@
     "debug_sqrt": false,
 
     "_desc_run_name": "Descriptive name for run, used to name log files with something useful",
-    "run_name": "SML-test",
+    "run_name": "alexnet-test",
 
     "_desc_network": "Path to NN architecture to use for the run",
-    "network": "files/models/secureml.json",
+    "network": "files/models/alexnet-cifar10-norelu.json",
 
     "_desc_custom_epochs": "Enable custom number of epochs. Otherwise set by size of learning rate schedule",
     "custom_epochs": true,
@@ -57,7 +57,7 @@
     "preload": true,
 
     "_desc_preload_path": "Directory path from which to preload network weights",
-    "preload_path": "output/secureml",
+    "preload_path": "output/alexnet",
 
     "_desc_lr_schedule": "Learning rate schedule, in negative powers of 2 (e.g. 3 -> learning rate of 2^-3). Assumes that the number of LR exponents matches the desired number of training epochs",
     "lr_schedule": [3, 3, 3, 4, 4, 5, 6, 7, 8, 9],

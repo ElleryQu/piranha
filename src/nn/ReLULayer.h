@@ -10,7 +10,7 @@
 extern int partyNum;
 
 template<typename T, template<typename, typename...> typename Share>
-class ReLULayer : public Layer<T, Share> {
+class ReLULayerBase : public Layer<T, Share> {
 
     private:
         ReLUConfig conf;

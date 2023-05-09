@@ -17,6 +17,7 @@ void Precompute::getRandomNumber(Share &r) {
 	r *= 1;
 
 	delete [] rr;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -37,6 +38,7 @@ void Precompute::getRandomNumber(DeviceData<T> &r) {
 	thrust::copy(rr, rr + r.size(), r.begin());
 
 	delete [] rr;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -58,6 +60,7 @@ void Precompute::getCoin(Share &r) {
 	r &= 1;
 
 	delete [] rr;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -79,6 +82,7 @@ void Precompute::getCoin(DeviceData<T> &r) {
 	r &= 1;
 
 	delete [] rr;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -179,6 +183,7 @@ void Precompute::getBeaverTriples(Share &x, Share &y, Share &z) {
 			// std::cout << std::endl;
 
 		}
+		synchronize(1, 2);
 
 		delete [] rx;
 		delete [] ry;
@@ -237,6 +242,7 @@ void Precompute::getBooleanBeaverTriples(Share &x, Share &y, Share &z) {
 	// 		z ^= vz;
 	// 	}
 	// }
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -309,6 +315,7 @@ void Precompute::getMatrixBeaverTriple(Share &x, Share &y, Share &z,
 		delete []ry;
 		delete []rz;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -400,6 +407,7 @@ void Precompute::getConvBeaverTriple_fprop(Share &x, Share &y, Share &z,
 		delete []ry;
 		delete []rz;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -491,6 +499,7 @@ void Precompute::getConvBeaverTriple_dgrad(Share &x, Share &y, Share &z,
 		delete []ry;
 		delete []rz;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -582,6 +591,7 @@ void Precompute::getConvBeaverTriple_wgrad(Share &x, Share &y, Share &z,
 		delete []ry;
 		delete []rz;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -626,6 +636,7 @@ void Precompute::getCorrelatedRandomness(
 
 	delete [] myr;
 	delete [] otherr;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -680,6 +691,7 @@ void Precompute::getCorrelatedRandomness_matmul(
 
 	delete [] random1;
 	delete [] random2;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -733,6 +745,7 @@ void Precompute::getCorrelatedRandomness_fprop(
 
 	delete [] random1;
 	delete [] random2;
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -784,6 +797,7 @@ void Precompute::getCorrelatedPairs(
 		aes_objects[partyNum]->getRandom(myr, in.size());
 		thrust::copy(myr, myr + in.size(), out.getShare(0)->begin());
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -847,6 +861,7 @@ void Precompute::getCorrelatedPairs_matmul(
 		thrust::copy(myr, myr + out.size(), out.getShare(0)->begin());
 		delete [] myr;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -905,11 +920,12 @@ void Precompute::getCorrelatedPairs_fprop(
 		Xc.getShare(0)->join();
 
 		T* myr = new T[out.size()];	
-		aes_objects[partyNum]->getRandom(myr, in.size());
-		thrust::copy(myr, myr + in.size(), out.getShare(0)->begin());
+		aes_objects[partyNum]->getRandom(myr, out.size());
+		thrust::copy(myr, myr + out.size(), out.getShare(0)->begin());
 		
 		delete [] myr;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -949,6 +965,7 @@ void Precompute::reshareC_off(
 
 		delete [] otherr;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();
@@ -1029,6 +1046,7 @@ void Precompute::FusionMux_off(
 
 		delete [] myr;
 	}
+	synchronize(1, 2);
 
 	comm_profiler.start();
 	func_profiler.start();

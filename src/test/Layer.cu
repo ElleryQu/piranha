@@ -505,227 +505,227 @@ TYPED_TEST(LayerTest, AveragepoolBackwardBasic) {
     assertShare(*layer.getDelta(), expected);
 }
 
-// TYPED_TEST(LayerTest, CNNForwardBasic) {
+TYPED_TEST(LayerTest, CNNForwardBasic) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // B = 2, H = 3, W = 3, Din = 1
-//     LAYER_TEST_SHARE<T> im = {
-//         1, 2, 1, 2, 3, 2, 1, 2, 1,
-//         1, 2, 1, 2, 3, 2, 1, 2, 1,
-//     };
+    // B = 2, H = 3, W = 3, Din = 1
+    LAYER_TEST_SHARE<T> im = {
+        1, 2, 1, 2, 3, 2, 1, 2, 1,
+        1, 2, 1, 2, 3, 2, 1, 2, 1,
+    };
 
-//     // weights: 1 3x3 filters, Dout=1 -> 1 3x3 filter
-//     LAYER_TEST_SHARE<T> filter = {
-//         1, 0, 1, 0, 1, 0, 1, 0, 1
-//     };
+    // weights: 1 3x3 filters, Dout=1 -> 1 3x3 filter
+    LAYER_TEST_SHARE<T> filter = {
+        1, 0, 1, 0, 1, 0, 1, 0, 1
+    };
 
-//     CNNConfig lconfig(
-//         3, 3, // image height x image width 
-//         1, // input features
-//         1, 3, // filters/output features, filter size
-//         1, 1, // stride, padding
-//         2 // batch size
-//     );
-//     CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    CNNConfig lconfig(
+        3, 3, // image height x image width 
+        1, // input features
+        1, 3, // filters/output features, filter size
+        1, 1, // stride, padding
+        2 // batch size
+    );
+    CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     layer.getWeights()->zero();
-//     *layer.getWeights() += filter;
+    layer.getWeights()->zero();
+    *layer.getWeights() += filter;
 
-//     layer.forward(im);
+    layer.forward(im);
 
-//     std::vector<double> expected = {
-//         4, 6, 4, 6, 7, 6, 4, 6, 4,
-//         4, 6, 4, 6, 7, 6, 4, 6, 4
-//     };
+    std::vector<double> expected = {
+        4, 6, 4, 6, 7, 6, 4, 6, 4,
+        4, 6, 4, 6, 7, 6, 4, 6, 4
+    };
 
-//     assertShare(*layer.getActivation(), expected, true);
-// }
+    assertShare(*layer.getActivation(), expected, true);
+}
 
-// TYPED_TEST(LayerTest, CNNForwardStride) {
+TYPED_TEST(LayerTest, CNNForwardStride) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // B = 1, H = 3, W = 3, Din = 1
-//     LAYER_TEST_SHARE<T> im = {
-//         1, 2, 1, 2, 3, 2, 1, 2, 1,
-//     };
+    // B = 1, H = 3, W = 3, Din = 1
+    LAYER_TEST_SHARE<T> im = {
+        1, 2, 1, 2, 3, 2, 1, 2, 1,
+    };
 
-//     // weights: 1 3x3 filters, Dout=1 -> 1 3x3 filter
-//     LAYER_TEST_SHARE<T> filter = {
-//         1, 3, 1, 2, 1, 4, 1, 0, 1
-//     };
+    // weights: 1 3x3 filters, Dout=1 -> 1 3x3 filter
+    LAYER_TEST_SHARE<T> filter = {
+        1, 3, 1, 2, 1, 4, 1, 0, 1
+    };
 
-//     CNNConfig lconfig(
-//         3, 3, // image height x image width 
-//         1, // input features
-//         1, 3, // filters/output features, filter size
-//         2, 1, // stride, padding
-//         1 // batch size
-//     );
-//     CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    CNNConfig lconfig(
+        3, 3, // image height x image width 
+        1, // input features
+        1, 3, // filters/output features, filter size
+        2, 1, // stride, padding
+        1 // batch size
+    );
+    CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     layer.getWeights()->zero();
-//     *layer.getWeights() += filter;
+    layer.getWeights()->zero();
+    *layer.getWeights() += filter;
 
-//     layer.forward(im);
+    layer.forward(im);
 
-//     std::vector<double> expected = {
-//         12, 8, 18, 14
-//     };
+    std::vector<double> expected = {
+        12, 8, 18, 14
+    };
 
-//     assertShare(*layer.getActivation(), expected, true);
-// }
+    assertShare(*layer.getActivation(), expected, true);
+}
 
-// TYPED_TEST(LayerTest, CNNForwardInputChannels) {
+TYPED_TEST(LayerTest, CNNForwardInputChannels) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // B = 1, H = 3, W = 3, Din = 2
-//     LAYER_TEST_SHARE<T> im = {
-//         1, 0, 2, -1, 1, 3,
-//         2, 2, 3, 1, 2, 5,
-//         1, 6, 2, 0, 1, -2,
+    // B = 1, H = 3, W = 3, Din = 2
+    LAYER_TEST_SHARE<T> im = {
+        1, 0, 2, -1, 1, 3,
+        2, 2, 3, 1, 2, 5,
+        1, 6, 2, 0, 1, -2,
 
-//         1, 0, 2, -1, 1, 3,
-//         2, 2, 3, 1, 2, 5,
-//         1, 6, 2, 0, 1, -2
-//     };
+        1, 0, 2, -1, 1, 3,
+        2, 2, 3, 1, 2, 5,
+        1, 6, 2, 0, 1, -2
+    };
 
-//     // weights: 2 3x3 filters, Dout=1 -> 2 3x3 filter
-//     // Dout x H x W x Din
-//     LAYER_TEST_SHARE<T> filter = {
-//         1, 1, 3, 1, 1, 1,
-//         2, 1, 1, 0, 4, -1,
-//         1, 0, 0, 1, 1, 0
-//     };
+    // weights: 2 3x3 filters, Dout=1 -> 2 3x3 filter
+    // Dout x H x W x Din
+    LAYER_TEST_SHARE<T> filter = {
+        1, 1, 3, 1, 1, 1,
+        2, 1, 1, 0, 4, -1,
+        1, 0, 0, 1, 1, 0
+    };
 
-//     CNNConfig lconfig(
-//         3, 3, // image height x image width 
-//         2, // input features
-//         1, 3, // filters/output features, filter size
-//         2, 1, // stride, padding
-//         2 // batch size
-//     );
-//     CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    CNNConfig lconfig(
+        3, 3, // image height x image width 
+        2, // input features
+        1, 3, // filters/output features, filter size
+        2, 1, // stride, padding
+        2 // batch size
+    );
+    CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     layer.getWeights()->zero();
-//     *layer.getWeights() += filter;
+    layer.getWeights()->zero();
+    *layer.getWeights() += filter;
 
-//     layer.forward(im);
+    layer.forward(im);
 
-//     std::vector<double> expected = {
-//         15, 12, 21, 20,
-//         15, 12, 21, 20
-//     };
+    std::vector<double> expected = {
+        15, 12, 21, 20,
+        15, 12, 21, 20
+    };
 
-//     assertShare(*layer.getActivation(), expected, true);
-// }
+    assertShare(*layer.getActivation(), expected, true);
+}
 
-// TYPED_TEST(LayerTest, CNNForwardAllDims) {
+TYPED_TEST(LayerTest, CNNForwardAllDims) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     // N = 2, H = 3, W = 3, C = 2
-//     LAYER_TEST_SHARE<T> im = {
-//         1, -1, 1, 0, 2, 3,
-//         2, 0, 0, 2, 1, -1,
-//         1, -1, 3, 1, 0, 1,
+    // N = 2, H = 3, W = 3, C = 2
+    LAYER_TEST_SHARE<T> im = {
+        1, -1, 1, 0, 2, 3,
+        2, 0, 0, 2, 1, -1,
+        1, -1, 3, 1, 0, 1,
 
-//         0, -1, -2, 2, -1, -1,
-//         0, 0, 0, 3, 2, -1,
-//         1, 1, 3, 0, 0, 3
-//     };
+        0, -1, -2, 2, -1, -1,
+        0, 0, 0, 3, 2, -1,
+        1, 1, 3, 0, 0, 3
+    };
 
-//     // weights: 2 3x3 filters, Dout=2 -> 4 3x3 filter
-//     // Dout x H x W x Din
-//     LAYER_TEST_SHARE<T> filter = {
-//         1, 1, 0, 1, 1, 0,
-//         1, 0, 0, 1, 1, 0,
-//         1, 0, 0, 1, 1, 1,
+    // weights: 2 3x3 filters, Dout=2 -> 4 3x3 filter
+    // Dout x H x W x Din
+    LAYER_TEST_SHARE<T> filter = {
+        1, 1, 0, 1, 1, 0,
+        1, 0, 0, 1, 1, 0,
+        1, 0, 0, 1, 1, 1,
 
-//         -1, -1, 1, 0, -1, -1,
-//         1, 0, -1, -1, 1, 0,
-//         -1, -1, 1, 0, -1, -1
-//     };
+        -1, -1, 1, 0, -1, -1,
+        1, 0, -1, -1, 1, 0,
+        -1, -1, 1, 0, -1, -1
+    };
 
-//     CNNConfig lconfig(
-//         3, 3, // image height x image width 
-//         2, // input features
-//         2, 3, // filters/output features, filter size
-//         2, 1, // stride, padding
-//         2 // batch size
-//     );
-//     CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    CNNConfig lconfig(
+        3, 3, // image height x image width 
+        2, // input features
+        2, 3, // filters/output features, filter size
+        2, 1, // stride, padding
+        2 // batch size
+    );
+    CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     layer.getWeights()->zero();
-//     *layer.getWeights() += filter;
+    layer.getWeights()->zero();
+    *layer.getWeights() += filter;
 
-//     layer.forward(im);
+    layer.forward(im);
 
-//     std::vector<double> expected = {
-//         2, 1, 3, -5,
-//         2, 3, 5, 1,
+    std::vector<double> expected = {
+        2, 1, 3, -5,
+        2, 3, 5, 1,
 
-//         0, -4, -4, -1,
-//         4, -2, 8, -1
-//     };
+        0, -4, -4, -1,
+        4, -2, 8, -1
+    };
 
-//     assertShare(*layer.getActivation(), expected, true);
-// }
+    assertShare(*layer.getActivation(), expected, true);
+}
 
-// TYPED_TEST(LayerTest, CNNForwardMNIST) {
+TYPED_TEST(LayerTest, CNNForwardMNIST) {
 
-//     using T = typename TestFixture::ParamType;
+    using T = typename TestFixture::ParamType;
 
-//     if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
+    if (partyNum >= LAYER_TEST_SHARE<T>::numParties) return;
 
-//     int inputWidth = 9;
-//     int inputHeight = 9;
-//     int inputDim = 2;
-//     int outputDim = 3;
-//     int filterSize = 3;
-//     int stride = 2;
-//     int padding = 1;
-//     int batchSize = 128;
+    int inputWidth = 9;
+    int inputHeight = 9;
+    int inputDim = 2;
+    int outputDim = 3;
+    int filterSize = 3;
+    int stride = 2;
+    int padding = 1;
+    int batchSize = 128;
 
-//     CNNConfig lconfig(
-//         inputHeight, inputWidth,
-//         inputDim,
-//         outputDim, filterSize,
-//         stride, padding,
-//         batchSize
-//     );
-//     CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
+    CNNConfig lconfig(
+        inputHeight, inputWidth,
+        inputDim,
+        outputDim, filterSize,
+        stride, padding,
+        batchSize
+    );
+    CNNLayer<T, LAYER_TEST_SHARE> layer(&lconfig, 0, 0xbeef); 
 
-//     // load weights and biases
-//     loadShareFromFile(std::string(TEST_PATH) + "test_convlayer_weight", *layer.getWeights());
+    // load weights and biases
+    loadShareFromFile(std::string(TEST_PATH) + "test_convlayer_weight", *layer.getWeights());
 
-//     // load input
-//     LAYER_TEST_SHARE<T> input(batchSize * inputWidth * inputHeight * inputDim);
-//     loadShareFromFile(std::string(TEST_PATH) + "test_convlayer_input", input);
+    // load input
+    LAYER_TEST_SHARE<T> input(batchSize * inputWidth * inputHeight * inputDim);
+    loadShareFromFile(std::string(TEST_PATH) + "test_convlayer_input", input);
 
-//     //printShareTensor(input, "input", 1, 2, 9, 9);
-//     //printShareTensor(*layer.getWeights(), "weights", 1, 2, 3, 3);
+    //printShareTensor(input, "input", 1, 2, 9, 9);
+    //printShareTensor(*layer.getWeights(), "weights", 1, 2, 3, 3);
 
-//     layer.forward(input);
+    layer.forward(input);
 
-//     // load output
-//     LAYER_TEST_SHARE<T> expected(batchSize * 5 * 5 * outputDim); 
-//     loadShareFromFile(std::string(TEST_PATH) + "test_convlayer_output", expected);
+    // load output
+    LAYER_TEST_SHARE<T> expected(batchSize * 5 * 5 * outputDim); 
+    loadShareFromFile(std::string(TEST_PATH) + "test_convlayer_output", expected);
 
-//     std::vector<double> expected_host(expected.size());
-//     copyToHost(expected, expected_host);
-//     assertShare(*layer.getActivation(), expected_host);
-// }
+    std::vector<double> expected_host(expected.size());
+    copyToHost(expected, expected_host);
+    assertShare(*layer.getActivation(), expected_host);
+}
 
 // TYPED_TEST(LayerTest, CNNBackwardBasic) {
 
