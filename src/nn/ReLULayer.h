@@ -10,12 +10,16 @@
 extern int partyNum;
 
 template<typename T, template<typename, typename...> typename Share>
-class ReLULayerBase : public Layer<T, Share> {
+class ReLULayer : public Layer<T, Share> {
 
     private:
         ReLUConfig conf;
 
+        #ifdef GFORCE
         Share<T> reluPrime;
+        #else
+        Share<uint8_t> reluPrime;
+        #endif
 
         Share<T> activations;
         Share<T> deltas;

@@ -12,7 +12,7 @@ extern Profiler debug_profiler;
 extern nlohmann::json piranha_config;
 
 template<typename T, template<typename, typename...> typename Share>
-Profiler ReLULayerBase<T, Share>::relu_profiler;
+Profiler ReLULayer<T, Share>::relu_profiler;
 
 template<typename T, template<typename, typename...> typename Share>
 ReLULayer<T, Share>::ReLULayer(ReLUConfig* conf, int _layerNum, int seed) : Layer<T, Share>(_layerNum),
@@ -66,7 +66,11 @@ void ReLULayer<T, Share>::forward(const Share<T> &input) {
 
     activations.zero();
 
+    #ifdef GFORCE
+    ReLU<T, DELTA_DATATYPE, BufferIterator<T>, BufferIterator<T>, BufferIterator<T>>(input, activations, reluPrime);
+    #else
     ReLU(input, activations, reluPrime);
+    #endif
 
     debug_profiler.accumulate("relu-fw-fprop");
     this->layer_profiler.accumulate("relu-forward");
@@ -125,14 +129,18 @@ void ReLULayer<T, Share>::backward(const Share<T> &delta, const Share<T> &forwar
     //return deltas;
 }
 
+#ifdef GFORCE
+template class ReLULayer<uint32_t, GFO>;
+template class ReLULayer<uint64_t, GFO>;
+
+#else
+
 template class ReLULayer<uint32_t, OPC>;
 template class ReLULayer<uint64_t, OPC>;
 
 template class ReLULayer<uint32_t, TPC>;
 template class ReLULayer<uint64_t, TPC>;
 
-template class ReLULayer<uint32_t, GFO>;
-template class ReLULayer<uint64_t, GFO>;
-
 template class ReLULayer<uint32_t, ROG>;
 template class ReLULayer<uint64_t, ROG>;
+#endif

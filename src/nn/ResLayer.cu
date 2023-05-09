@@ -326,14 +326,16 @@ std::vector<Layer<T, Share> *> *ResLayer<T, Share>::getShortcut(int idx) {
     return (idx >= this->shortcuts.size()) ? NULL : this->shortcuts[idx];
 }
 
+#ifdef GFORCE
+template class ResLayer<uint32_t, GFO>;
+template class ResLayer<uint64_t, GFO>;
+#else
 template class ResLayer<uint32_t, OPC>;
 template class ResLayer<uint64_t, OPC>;
 
 template class ResLayer<uint32_t, TPC>;
 template class ResLayer<uint64_t, TPC>;
 
-template class ResLayer<uint32_t, GFO>;
-template class ResLayer<uint64_t, GFO>;
-
 template class ResLayer<uint32_t, ROG>;
 template class ResLayer<uint64_t, ROG>;
+#endif

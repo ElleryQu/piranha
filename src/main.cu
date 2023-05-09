@@ -314,15 +314,22 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
             net->forward(batch_data);
             test_profiler.accumulate("fw-pass");
 
-            updateAccuracy(net, batch_labels, correct);
+            // single inference
+            if (i == 0) 
+            {
+                test_profiler.clear();
+                comm_profiler.clear();
+            }
 
             if (piranha_config["eval_inference_stats"]) {
                 double fw_ms = test_profiler.get_elapsed("fw-pass");
-                
+                printf("---------------------------------------------------------------------------\n");
                 printf("inference iteration (ms),%f\n", fw_ms);
                 printf("inference TX comm (bytes),%d\n", comm_profiler.get_comm_tx_bytes());
                 printf("inference RX comm (bytes),%d\n", comm_profiler.get_comm_rx_bytes());
             }
+
+            updateAccuracy(net, batch_labels, correct);
 
             if (piranha_config["eval_fw_peak_memory"]) {
                 printf("fw pass peak memory (MB), %f\n", memory_profiler.get_max_mem_mb());
@@ -357,25 +364,25 @@ void train(NeuralNetwork<T, Share> *net, NeuralNetConfig *config, std::string ru
 
             total_time_s += test_profiler.get_elapsed_all() / 1000.0;
             
-            if (piranha_config["iteration_snapshots"]) {
-                std::string snapshot_path = "output/"+run_name+"-epoch-"+std::to_string(e)+"-iteration-"+std::to_string(i);
-                net->saveSnapshot(snapshot_path);
+            // if (piranha_config["iteration_snapshots"]) {
+            //     std::string snapshot_path = "output/"+run_name+"-epoch-"+std::to_string(e)+"-iteration-"+std::to_string(i);
+            //     net->saveSnapshot(snapshot_path);
 
-                if (piranha_config["test_iteration_snapshots"]) {
-                    NeuralNetwork<uint64_t, TPC> test_net(config, 0);
-                    test_net.loadSnapshot(snapshot_path);
+            //     if (piranha_config["test_iteration_snapshots"]) {
+            //         NeuralNetwork<uint64_t, TPC> test_net(config, 0);
+            //         test_net.loadSnapshot(snapshot_path);
 
-                    test(&test_net, test_data, test_labels);
-                    fflush(stdout);
-                }
-            }
+            //         test(&test_net, test_data, test_labels);
+            //         fflush(stdout);
+            //     }
+            // }
         }
 
         if (piranha_config["eval_epoch_stats"]) {
             printf("epoch,%d\n", e);
-            printf("total time (s),%f\n", total_time_s);
-            printf("total tx comm (MB),%f\n", total_comm_tx_mb);
-            printf("total rx comm (MB),%f\n", total_comm_rx_mb);
+            printf("total time (s),%f\n", total_time_s/(numIterations-1));
+            printf("total tx comm (MB),%f\n", total_comm_tx_mb/(numIterations-1));
+            printf("total rx comm (MB),%f\n", total_comm_rx_mb/(numIterations-1));
         }
 
         double acc = ((double)correct) / (numIterations * MINI_BATCH_SIZE);
