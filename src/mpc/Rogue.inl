@@ -972,10 +972,6 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
     if (partyNum == ROG<uint32_t>::CLIENT) {
         *bang.getShare(0) ^= *bang.getShare(1);
         *bang.getShare(0) ^= *tb.getShare(0);
-        comm_profiler.start();
-        bang.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
-        bang.getShare(0)->join();
-        comm_profiler.accumulate("comm-time");
         
         // while transmiting, lets compute...
         *db.getShare(0) *= *x.getShare(0);
@@ -998,8 +994,12 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *dbdx.getShare(0) -= *db.getShare(0);
 
         comm_profiler.start();
-        dbdx.getShare(0)->transmit(ROG<T>::otherParty(partyNum));
-        dbdx.getShare(0)->join();
+        DeviceData<T> temp(size * 2);
+        temp.fill(0);
+        thrust::transform(temp.begin(), temp.begin() + size, bang.getShare(0)->begin(), temp.begin(), thrust::plus<T>());
+        thrust::transform(temp.begin() + size, temp.end(), dbdx.getShare(0)->begin(), temp.begin() + size, thrust::plus<T>());
+        temp.transmit(ROG<T>::otherParty(partyNum));
+        temp.join();
         comm_profiler.accumulate("comm-time");
     }
     else if (partyNum == ROG<uint32_t>::SERVER) {
@@ -1012,10 +1012,12 @@ void FusionMux(MTPC<T, I> &x, ROG<U, I2> &b, ROG<T, I3> &result) {
         *bang.getShare(1) -= *x.getShare(1);
 
         comm_profiler.start();
-        bang.getShare(0)->receive(ROG<T>::otherParty(partyNum));
-        bang.getShare(0)->join();
-        result.getShare(0)->receive(ROG<T>::otherParty(partyNum));
-        result.getShare(0)->join();
+        DeviceData<T> temp(size * 2);
+        temp.receive(ROG<T>::otherParty(partyNum));
+        temp.join();
+        bang.getShare(0)->fill(0), result.getShare(0)->fill(0);
+        thrust::transform(bang.getShare(0)->begin(), bang.getShare(0)->end(), temp.begin(), bang.getShare(0)->begin(), thrust::plus<T>());
+        thrust::transform(result.getShare(0)->begin(), result.getShare(0)->end(), temp.begin() + size, result.getShare(0)->begin(), thrust::plus<T>());
         comm_profiler.accumulate("comm-time");
 
         // while receiving. lets compute...
